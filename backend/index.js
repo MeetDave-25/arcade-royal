@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -13,7 +14,7 @@ const io = new Server(server, {
 });
 
 const pool = new Pool({
-  connectionString: 'postgresql://neondb_owner:npg_uMs7DGCWwnV8@ep-raspy-base-azb1uomo-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
+  connectionString: process.env.DATABASE_URL
 });
 
 pool.connect((err, client, release) => {
