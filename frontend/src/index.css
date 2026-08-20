@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@300;400;700&display=swap');
+
+:root {
+  --bg-color: #0d0e15;
+  --text-color: #ffffff;
+  --neon-green: #39ff14;
+  --hot-pink: #ff00ff;
+  --cyan: #00ffff;
+  --retro-font: 'Press Start 2P', cursive;
+  --modern-font: 'Outfit', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--modern-font); /* Default to modern for readability */
+  overflow-x: hidden;
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* CRT Scanline effect - Subdued for modern look */
+.crt::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.15) 50% /* Lighter scanlines */
+  );
+  z-index: 999;
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+/* Video Background */
+.video-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+  filter: brightness(0.3) contrast(1.2) saturate(1.2);
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  background: rgba(13, 14, 21, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(0, 255, 255, 0.2);
+}
+
+/* Button Styling (Modern + Retro) */
+.retro-btn {
+  font-family: var(--retro-font);
+  background: rgba(0, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  color: var(--cyan);
+  border: 2px solid var(--cyan);
+  border-radius: 8px; /* Modern touch */
+  padding: 15px 30px;
+  font-size: 1rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 0 10px rgba(0,255,255,0.3);
+}
+
+.retro-btn:hover {
+  background: var(--cyan);
+  color: #000;
+  box-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan);
+  transform: scale(1.05);
+}
+
+.retro-btn:active {
+  transform: scale(0.95);
+}
+
+.retro-input {
+  font-family: var(--modern-font);
+  font-weight: 700;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  border: 2px solid var(--hot-pink);
+  border-radius: 8px;
+  color: var(--hot-pink);
+  padding: 15px 20px;
+  font-size: 1.2rem;
+  outline: none;
+  text-align: center;
+  transition: box-shadow 0.3s ease;
+  width: 100%;
+  max-width: 400px;
+}
+
+.retro-input:focus {
+  box-shadow: 0 0 15px var(--hot-pink);
+}
+
+.retro-input::placeholder {
+  color: rgba(255, 0, 255, 0.4);
+}
+
+/* Title Styling */
+.neon-title {
+  font-family: var(--retro-font);
+  font-size: 3rem;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* Modern Gradient Text */
+.gradient-text {
+  background: linear-gradient(90deg, var(--cyan), var(--hot-pink), var(--neon-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+  animation: shine 4s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 20px;
+}
