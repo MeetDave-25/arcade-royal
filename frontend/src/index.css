@@ -169,3 +169,96 @@ body {
   flex: 1;
   padding: 20px;
 }
+
+/* Pokemon Gym Entrance Reveal CSS */
+.pokemon-game-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  clip-path: circle(150% at 50% 50%);
+  z-index: 2000;
+  background: #000;
+  image-rendering: pixelated;
+}
+
+.pokemon-game-container.iris-close {
+  animation: irisClose 2s ease-in forwards;
+}
+
+@keyframes irisClose {
+  0% { clip-path: circle(100% at 50% 50%); }
+  100% { clip-path: circle(0% at 50% 50%); }
+}
+
+.pokemon-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  image-rendering: pixelated;
+}
+
+.pokemon-sprite {
+  position: absolute;
+  background-image: url('/pokemon-trainer.png');
+  image-rendering: pixelated;
+  z-index: 100;
+  left: 0;
+  top: 0;
+  transition: opacity 0.6s ease-out;
+}
+
+.pokemon-sprite.fade-out {
+  opacity: 0;
+}
+
+.pokemon-tree {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-image: url('/pokemon-trees.png');
+  image-rendering: pixelated;
+  z-index: 50;
+  transition: opacity 0.6s ease-out;
+}
+
+.pokemon-tree.fade-out {
+  opacity: 0;
+}
+
+.pokemon-shadow {
+  position: absolute;
+  z-index: 99;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  transition: opacity 0.6s ease-out;
+  pointer-events: none;
+}
+
+.pokemon-shadow.fade-out {
+  opacity: 0;
+}
+
+.pokemon-shadow-row {
+  display: flex;
+  gap: 0;
+}
+
+.pokemon-shadow-pixel {
+  background: transparent;
+}
+
+.pokemon-shadow-pixel.filled {
+  background: rgba(0, 0, 0, 0.4);
+}
+

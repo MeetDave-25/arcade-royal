@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import PokemonReveal from './PokemonReveal';
 import './index.css';
 
 const socket = io('http://localhost:3001');
 
 function App() {
+  const [isRevealed, setIsRevealed] = useState(false);
   const [gameState, setGameState] = useState({ phase: 'LOBBY', players: {}, leaderboard: [] });
   const [liveAnalytics, setLiveAnalytics] = useState({ totalAnswers: 0, optionCounts: [0,0,0,0], fastestFingers: [] });
   
@@ -514,6 +516,10 @@ function App() {
 
   return (
     <div className="crt">
+      {!isRevealed && (
+        <PokemonReveal onComplete={() => setIsRevealed(true)} />
+      )}
+
       <video 
         autoPlay 
         loop 
