@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import PokemonReveal from './PokemonReveal';
+import Pokemon3DReveal from './Pokemon3DReveal';
 import './index.css';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
@@ -617,7 +617,7 @@ function App() {
   return (
     <div className="crt">
       {!isRevealed && (
-        <PokemonReveal onComplete={() => setIsRevealed(true)} />
+        <Pokemon3DReveal onComplete={() => setIsRevealed(true)} />
       )}
 
       <video 
