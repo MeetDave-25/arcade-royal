@@ -269,7 +269,7 @@ function App() {
             A massive 100-player retro showdown. Test your reflexes, your meme knowledge, and your will to win in an immersive digital arena.
           </p>
 
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+          <div className="hero-cta-group">
             <button onClick={() => setUiView('ENTER_GAME')} className="magnetic-btn-primary">
               <div className="bg-hover" />
               <span>INSERT COIN</span>
@@ -932,9 +932,7 @@ function App() {
       {/* Music toggle */}
       <button 
         onClick={toggleMusic} 
-        style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 1000, background: 'rgba(0,0,0,0.6)', border: '1px solid var(--cyan)', color: 'var(--cyan)', padding: '10px 20px', borderRadius: '50px', cursor: 'pointer', backdropFilter: 'blur(10px)', fontFamily: 'var(--modern-font)', fontSize: '0.85rem', fontWeight: 700, transition: 'all 0.3s' }}
-        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(34,211,238,0.15)'}
-        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.6)'}
+        className="music-toggle-btn"
       >
         {isMusicPlaying ? '🔊 MUSIC ON' : '🔈 MUSIC OFF'}
       </button>
