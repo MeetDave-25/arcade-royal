@@ -1,13 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Press+Start+2P&family=Syne:wght@400;700;800&family=Outfit:wght@300;400;700&display=swap');
 
 :root {
-  --bg-color: #0d0e15;
+  --bg-color: #000000;
   --text-color: #ffffff;
   --neon-green: #39ff14;
   --hot-pink: #ff00ff;
   --cyan: #00ffff;
   --retro-font: 'Press Start 2P', cursive;
   --modern-font: 'Outfit', sans-serif;
+  --display-font: 'Syne', 'Outfit', sans-serif;
+  --body-font: 'Plus Jakarta Sans', sans-serif;
 }
 
 * {
@@ -169,6 +171,152 @@ body {
   flex: 1;
   padding: 20px;
 }
+
+/* Cinematic Luxury Overlay & Effects */
+.video-overlay-radial {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.45) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.video-overlay-linear {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, transparent 40%, rgba(0, 0, 0, 0.9) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Glass Status Badge */
+.glass-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  font-family: var(--body-font);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Magnetic Primary Button */
+.magnetic-btn-primary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 40px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #000000;
+  font-family: var(--body-font);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  overflow: hidden;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+  box-shadow: 0 10px 30px rgba(255, 255, 255, 0.15);
+}
+
+.magnetic-btn-primary .bg-hover {
+  position: absolute;
+  inset: 0;
+  background: #e2e8f0;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+  z-index: 0;
+}
+
+.magnetic-btn-primary:hover .bg-hover {
+  transform: translateY(0);
+}
+
+.magnetic-btn-primary:hover {
+  transform: scale(1.05);
+}
+
+.magnetic-btn-primary span {
+  position: relative;
+  z-index: 1;
+}
+
+/* Glass Outline Button */
+.glass-btn-secondary {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 36px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-family: var(--body-font);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.glass-btn-secondary:hover {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* Display Headline Typography */
+.hero-headline {
+  font-family: var(--display-font);
+  font-weight: 800;
+  font-size: clamp(3rem, 7vw, 7.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+}
+
+.hero-headline .italic-word {
+  font-style: italic;
+  font-weight: 300;
+  background: linear-gradient(135deg, #ffffff 0%, #9ca3af 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Bounce Indicator */
+@keyframes bounceSlow {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+
+.scroll-indicator-line {
+  width: 1px;
+  height: 48px;
+  background: linear-gradient(to bottom, #ffffff, transparent);
+  animation: bounceSlow 2s ease-in-out infinite;
+}
+
 
 /* Pokemon Gym Entrance Reveal CSS */
 .pokemon-game-container {

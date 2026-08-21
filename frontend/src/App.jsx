@@ -100,144 +100,243 @@ function App() {
   };
 
   const renderLandingPage = () => (
-    <div style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
       
-      {/* Navbar - Minimal Modern */}
-      <nav style={{ position: 'fixed', top: 0, width: '100%', padding: '20px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(15px)', zIndex: 100, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      {/* Video Overlays */}
+      <div className="video-overlay-radial" />
+      <div className="video-overlay-linear" />
+
+      {/* Header / Navigation */}
+      <nav style={{ position: 'fixed', top: 0, left: 0, width: '100%', padding: '24px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100, backdropFilter: 'blur(10px)', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <motion.div 
-          initial={{ opacity: 0, x: -20 }} 
+          initial={{ opacity: 0, x: -30 }} 
           animate={{ opacity: 1, x: 0 }} 
-          style={{ fontFamily: 'var(--retro-font)', fontSize: '1.2rem', color: '#fff', letterSpacing: '2px' }}
+          transition={{ duration: 0.8 }}
+          style={{ display: 'flex', alignItems: 'center', gap: '15px' }}
         >
-          ARCADE <span style={{ color: 'var(--cyan)' }}>ROYALE</span>
+          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ffffff', color: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem', fontFamily: 'var(--retro-font)', boxShadow: '0 0 20px rgba(255,255,255,0.4)' }}>
+            A
+          </div>
+          <span style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '1.3rem', letterSpacing: '0.15em', color: '#ffffff' }}>
+            ARCADE <span style={{ color: 'var(--cyan)' }}>ROYALE</span>
+          </span>
         </motion.div>
+
+        {/* Center Nav Links */}
         <motion.div 
-          initial={{ opacity: 0, x: 20 }} 
-          animate={{ opacity: 1, x: 0 }} 
-          style={{ display: 'flex', gap: '30px', alignItems: 'center' }}
+          initial={{ opacity: 0, y: -10 }} 
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+          style={{ display: 'flex', gap: '40px', alignItems: 'center' }}
         >
-          <button onClick={() => setUiView('ADMIN_LOGIN')} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontFamily: 'var(--modern-font)', fontSize: '1rem', fontWeight: 600, transition: 'color 0.3s' }} onMouseOver={(e) => e.target.style.color = '#fff'} onMouseOut={(e) => e.target.style.color = '#888'}>Host Login</button>
-          <button onClick={() => setUiView('ENTER_GAME')} className="retro-btn" style={{ padding: '12px 25px', fontSize: '0.9rem', borderRadius: '50px' }}>Join Now</button>
+          {['ARENA', 'MODES', 'POSTER', 'LEADERBOARD'].map((link, idx) => (
+            <a 
+              key={idx} 
+              href={`#${link.toLowerCase()}`}
+              style={{ fontFamily: 'var(--body-font)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#9ca3af', textDecoration: 'none', transition: 'color 0.3s' }}
+              onMouseOver={(e) => e.target.style.color = '#ffffff'}
+              onMouseOut={(e) => e.target.style.color = '#9ca3af'}
+            >
+              {link}
+            </a>
+          ))}
+        </motion.div>
+
+        {/* Right CTA */}
+        <motion.div 
+          initial={{ opacity: 0, x: 30 }} 
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          style={{ display: 'flex', gap: '20px', alignItems: 'center' }}
+        >
+          <button 
+            onClick={() => setUiView('ADMIN_LOGIN')} 
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '9999px', padding: '10px 24px', color: '#ffffff', fontFamily: 'var(--body-font)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.3s' }}
+            onMouseOver={(e) => { e.target.style.background = '#ffffff'; e.target.style.color = '#000000'; }}
+            onMouseOut={(e) => { e.target.style.background = 'transparent'; e.target.style.color = '#ffffff'; }}
+          >
+            Host Login
+          </button>
+          <button 
+            onClick={() => setUiView('ENTER_GAME')} 
+            className="magnetic-btn-primary"
+            style={{ padding: '10px 24px', fontSize: '0.8rem' }}
+          >
+            <div className="bg-hover" />
+            <span>Join Now</span>
+          </button>
         </motion.div>
       </nav>
 
-      {/* Hero Section - Left Aligned */}
-      <header style={{ height: '100vh', display: 'flex', alignItems: 'center', padding: '0 5%', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle at 20% 50%, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 70%)', zIndex: 1, pointerEvents: 'none' }} />
+      {/* Hero Section */}
+      <header style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '140px 5% 60px 5%', position: 'relative', zIndex: 10 }}>
         
         <motion.div 
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          style={{ position: 'relative', zIndex: 10, maxWidth: '800px', marginTop: '120px' }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '900px' }}
         >
-          <h1 className="gradient-text" style={{ fontFamily: 'var(--retro-font)', fontSize: '5rem', margin: '0 0 20px 0', lineHeight: '1.2' }}>SURVIVE THE <br/>ARCADE.</h1>
-          <p style={{ fontFamily: 'var(--modern-font)', fontSize: '1.5rem', color: '#ccc', fontWeight: 300, lineHeight: '1.6', marginBottom: '50px', maxWidth: '600px' }}>
-            A massive 100-player retro showdown. Test your reflexes, your meme knowledge, and your will to win.
+          {/* Glass Status Badge */}
+          <div className="glass-badge">
+            ✦ LEVEL 99 RETRO SHOWDOWN
+          </div>
+
+          {/* Headline */}
+          <h1 className="hero-headline" style={{ marginTop: '30px', marginBottom: '25px' }}>
+            SURVIVE THE <br/>
+            <span className="italic-word">ARCADE</span> SHOWDOWN
+          </h1>
+
+          {/* Description */}
+          <p style={{ fontFamily: 'var(--body-font)', fontSize: '1.25rem', fontWeight: 300, color: '#9ca3af', lineHeight: 1.7, marginBottom: '45px', maxWidth: '650px' }}>
+            A massive 100-player retro showdown. Test your reflexes, your meme knowledge, and your will to win in an immersive digital arena.
           </p>
-          <div style={{ display: 'flex', gap: '20px' }}>
-            <button onClick={() => setUiView('ENTER_GAME')} className="retro-btn" style={{ fontSize: '1.2rem', padding: '20px 40px', borderRadius: '8px' }}>INSERT COIN</button>
+
+          {/* CTA Group */}
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+            <button onClick={() => setUiView('ENTER_GAME')} className="magnetic-btn-primary">
+              <div className="bg-hover" />
+              <span>INSERT COIN</span>
+            </button>
+            
+            <button onClick={() => setUiView('ADMIN_LOGIN')} className="glass-btn-secondary">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <span>HOST ARENA</span>
+            </button>
           </div>
         </motion.div>
+
+        {/* Scroll Indicator */}
+        <div style={{ position: 'absolute', bottom: '30px', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <div className="scroll-indicator-line" />
+        </div>
       </header>
 
-      {/* Modern + Retro Scroll Reveal Section */}
-      <section style={{ padding: '150px 5%', position: 'relative', zIndex: 5, background: 'transparent' }}>
+      {/* Game Modes Cards */}
+      <section id="modes" style={{ padding: '120px 5%', position: 'relative', zIndex: 10, background: 'transparent' }}>
         <motion.div 
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8 }}
+          style={{ textAlign: 'center', marginBottom: '80px' }}
         >
-          <h2 style={{ fontFamily: 'var(--retro-font)', fontSize: '2.5rem', color: 'var(--cyan)', marginBottom: '80px', textAlign: 'center', textShadow: '0 5px 15px rgba(0,0,0,0.8)' }}>CHOOSE YOUR DESTINY</h2>
+          <div className="glass-badge" style={{ marginBottom: '15px' }}>CHALLENGE MODES</div>
+          <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '3rem', color: '#ffffff', letterSpacing: '-0.02em' }}>
+            CHOOSE YOUR <span style={{ color: 'var(--cyan)' }}>DESTINY</span>
+          </h2>
         </motion.div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px', maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', maxWidth: '1400px', margin: '0 auto' }}>
           
           <motion.div 
             className="glass-card" 
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            style={{ padding: '50px', borderTop: '4px solid var(--cyan)', background: 'rgba(5, 5, 10, 0.5)', backdropFilter: 'blur(20px)' }}
+            style={{ padding: '45px', borderTop: '2px solid var(--cyan)', background: 'rgba(255, 255, 255, 0.02)', backdropFilter: 'blur(16px)' }}
           >
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>🧠</div>
-            <h3 style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, color: '#fff', marginBottom: '15px', fontSize: '1.8rem' }}>Meme War</h3>
-            <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1rem', fontWeight: 300 }}>Test your knowledge of internet culture, viral videos, and legendary memes. Answer fast to secure maximum points.</p>
+            <div style={{ fontSize: '2.5rem', marginBottom: '20px' }}>🧠</div>
+            <h3 style={{ fontFamily: 'var(--display-font)', fontWeight: 700, color: '#fff', marginBottom: '12px', fontSize: '1.6rem' }}>Meme War</h3>
+            <p style={{ fontFamily: 'var(--body-font)', lineHeight: '1.7', color: '#9ca3af', fontSize: '1rem', fontWeight: 300 }}>Test your knowledge of internet culture, viral videos, and legendary memes. Answer fast to secure maximum points.</p>
           </motion.div>
 
           <motion.div 
             className="glass-card" 
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            style={{ padding: '50px', borderTop: '4px solid var(--neon-green)', background: 'rgba(5, 5, 10, 0.5)', backdropFilter: 'blur(20px)' }}
+            style={{ padding: '45px', borderTop: '2px solid var(--neon-green)', background: 'rgba(255, 255, 255, 0.02)', backdropFilter: 'blur(16px)' }}
           >
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>😂</div>
-            <h3 style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, color: '#fff', marginBottom: '15px', fontSize: '1.8rem' }}>Comedy Edition</h3>
-            <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1rem', fontWeight: 300 }}>We pause the viral clip right before the punchline. You guess the ridiculous ending. It's absolute comedy gold.</p>
+            <div style={{ fontSize: '2.5rem', marginBottom: '20px' }}>😂</div>
+            <h3 style={{ fontFamily: 'var(--display-font)', fontWeight: 700, color: '#fff', marginBottom: '12px', fontSize: '1.6rem' }}>Comedy Edition</h3>
+            <p style={{ fontFamily: 'var(--body-font)', lineHeight: '1.7', color: '#9ca3af', fontSize: '1rem', fontWeight: 300 }}>We pause the viral clip right before the punchline. You guess the ridiculous ending. It's absolute comedy gold.</p>
           </motion.div>
 
           <motion.div 
             className="glass-card" 
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            style={{ padding: '50px', borderTop: '4px solid var(--hot-pink)', background: 'rgba(5, 5, 10, 0.5)', backdropFilter: 'blur(20px)' }}
+            style={{ padding: '45px', borderTop: '2px solid var(--hot-pink)', background: 'rgba(255, 255, 255, 0.02)', backdropFilter: 'blur(16px)' }}
           >
-            <div style={{ fontSize: '3rem', marginBottom: '20px' }}>⚔️</div>
-            <h3 style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, color: '#fff', marginBottom: '15px', fontSize: '1.8rem' }}>Marathon Boss</h3>
-            <p style={{ lineHeight: '1.8', color: '#ccc', fontSize: '1.1rem', fontWeight: 300 }}>The final stage. Rapid fire questions, higher difficulty, and double the points. Only the strong survive the onslaught.</p>
+            <div style={{ fontSize: '2.5rem', marginBottom: '20px' }}>⚔️</div>
+            <h3 style={{ fontFamily: 'var(--display-font)', fontWeight: 700, color: '#fff', marginBottom: '12px', fontSize: '1.6rem' }}>Marathon Boss</h3>
+            <p style={{ fontFamily: 'var(--body-font)', lineHeight: '1.7', color: '#9ca3af', fontSize: '1rem', fontWeight: 300 }}>The final stage. Rapid fire questions, higher difficulty, and double the points. Only the strong survive the onslaught.</p>
           </motion.div>
         </div>
       </section>
 
-      {/* Split Poster Section */}
-      <section style={{ padding: '150px 5%', position: 'relative', zIndex: 5, background: 'transparent' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '80px', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Poster Section */}
+      <section id="poster" style={{ padding: '100px 5%', position: 'relative', zIndex: 10, background: 'transparent' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '60px', maxWidth: '1400px', margin: '0 auto' }}>
           
           <motion.div 
-            initial={{ opacity: 0, x: -100, rotate: -5 }}
-            whileInView={{ opacity: 1, x: 0, rotate: 0 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, type: 'spring' }}
+            transition={{ duration: 0.8 }}
             style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}
           >
             <motion.img 
               style={{ y: yParallax }} 
               src="/psoter1.png" alt="Retro Poster" 
               className="glass-card"
-              style={{ width: '100%', maxWidth: '500px', borderRadius: '20px', border: '2px solid rgba(255,255,255,0.2)', padding: 0, background: 'transparent' }} 
+              style={{ width: '100%', maxWidth: '480px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)', padding: 0 }} 
             />
           </motion.div>
           
           <motion.div 
-            initial={{ opacity: 0, x: 100 }}
+            initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            style={{ flex: '1 1 500px', background: 'rgba(0,0,0,0.6)', padding: '50px', borderRadius: '20px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ flex: '1 1 500px', background: 'rgba(255,255,255,0.02)', padding: '50px', borderRadius: '24px', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
           >
-            <h2 style={{ fontFamily: 'var(--retro-font)', fontSize: '2.5rem', color: '#fff', marginBottom: '30px', lineHeight: '1.4' }}>READY TO <br/><span className="gradient-text">DOMINATE?</span></h2>
-            <p style={{ fontFamily: 'var(--modern-font)', fontWeight: 300, lineHeight: '1.8', color: '#ccc', marginBottom: '50px', fontSize: '1.2rem' }}>Gather your friends, enter the arena, and prove your worth on the global leaderboard. The arcade awaits your arrival.</p>
-            <button onClick={() => setUiView('ENTER_GAME')} className="retro-btn" style={{ padding: '20px 50px', fontSize: '1.2rem', width: '100%' }}>JOIN THE ARENA NOW</button>
+            <div className="glass-badge" style={{ marginBottom: '20px' }}>ARENA SHOWDOWN</div>
+            <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '3rem', color: '#fff', marginBottom: '25px', lineHeight: '1.1' }}>
+              READY TO <br/><span className="gradient-text">DOMINATE?</span>
+            </h2>
+            <p style={{ fontFamily: 'var(--body-font)', fontWeight: 300, lineHeight: '1.8', color: '#9ca3af', marginBottom: '40px', fontSize: '1.1rem' }}>
+              Gather your friends, enter the arena, and prove your worth on the global leaderboard. The arcade awaits your arrival.
+            </p>
+            <button onClick={() => setUiView('ENTER_GAME')} className="magnetic-btn-primary" style={{ width: '100%', padding: '20px' }}>
+              <div className="bg-hover" />
+              <span>JOIN THE ARENA NOW</span>
+            </button>
           </motion.div>
 
         </div>
       </section>
 
-      {/* Footer */}
-      <footer style={{ padding: '60px 5%', textAlign: 'center', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-        <div style={{ fontFamily: 'var(--modern-font)', fontSize: '0.9rem', color: '#ccc', letterSpacing: '6px', fontWeight: 300, textTransform: 'uppercase' }}>
-          Built By <br/>
-          <span className="gradient-text" style={{ fontFamily: 'var(--modern-font)', fontSize: '2.5rem', fontWeight: 900, display: 'inline-block', marginTop: '10px', textShadow: '0 5px 20px rgba(0,255,255,0.4)', letterSpacing: '1px', lineHeight: '1.1' }}>
-            MEET G. DAVE
-          </span>
+      {/* Cinematic Luxury Footer */}
+      <footer style={{ padding: '40px 5%', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(16px)', position: 'relative', zIndex: 10, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
+        
+        {/* Social Links Left */}
+        <div style={{ display: 'flex', gap: '25px' }}>
+          {['TWITTER', 'INSTAGRAM', 'DISCORD'].map((s, i) => (
+            <a key={i} href="#" style={{ fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.2em', color: '#9ca3af', textDecoration: 'none', transition: 'color 0.3s' }} onMouseOver={(e) => e.target.style.color = '#fff'} onMouseOut={(e) => e.target.style.color = '#9ca3af'}>
+              {s}
+            </a>
+          ))}
         </div>
-        <p style={{ color: '#555', fontSize: '0.9rem', fontFamily: 'var(--modern-font)', marginTop: '20px' }}>@2026 AiRA Lab</p>
+
+        {/* Studio Info Center */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.2em', color: '#9ca3af', textTransform: 'uppercase' }}>
+          <span>BUILT BY</span>
+          <div style={{ width: '32px', height: '1px', background: '#374151' }} />
+          <span style={{ color: '#ffffff', fontWeight: 700 }}>MEET G. DAVE</span>
+        </div>
+
+        {/* Copyright Right */}
+        <div style={{ fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.2em', color: '#4b5563', textTransform: 'uppercase' }}>
+          ©2026 AiRA LAB. ALL RIGHTS RESERVED.
+        </div>
+
       </footer>
     </div>
   );
