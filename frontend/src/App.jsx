@@ -204,63 +204,49 @@ function App() {
       <div className="video-overlay-linear" />
 
       {/* Header / Navigation */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, width: '100%', padding: '20px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100, backdropFilter: 'blur(12px)', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <motion.div 
-          initial={{ opacity: 0, x: -30 }} 
-          animate={{ opacity: 1, x: 0 }} 
-          transition={{ duration: 0.8 }}
-          style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
-        >
-          <img src="/favicon.svg" alt="Arcade Royale Logo" style={{ width: '38px', height: '38px', filter: 'drop-shadow(0 0 12px rgba(0,255,255,0.6))' }} />
-          <span style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '1.3rem', letterSpacing: '0.15em', color: '#ffffff' }}>
-            ARCADE <span style={{ color: 'var(--cyan)' }}>ROYALE</span>
-          </span>
-        </motion.div>
+      <nav className="app-navbar">
+        <div className="navbar-top-row">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            transition={{ duration: 0.6 }}
+            className="navbar-brand"
+          >
+            <img src="/favicon.svg" alt="Arcade Royale Logo" className="navbar-logo" />
+            <span className="navbar-title">
+              ARCADE <span style={{ color: 'var(--cyan)' }}>ROYALE</span>
+            </span>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }} 
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="navbar-actions"
+          >
+            <button onClick={() => setUiView('ADMIN_LOGIN')} className="navbar-btn-ghost">
+              Host Login
+            </button>
+            <button onClick={() => setUiView('ENTER_GAME')} className="navbar-btn-primary">
+              Join Now
+            </button>
+          </motion.div>
+        </div>
 
         <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
+          initial={{ opacity: 0, y: -5 }} 
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
           className="nav-center-links"
-          style={{ display: 'flex', gap: '32px', alignItems: 'center' }}
         >
           {['ARENA', 'MODES', 'POSTER', 'LEADERBOARD'].map((link, idx) => (
-            <a 
-              key={idx} 
-              href={`#${link.toLowerCase()}`}
-              style={{ fontFamily: 'var(--body-font)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#9ca3af', textDecoration: 'none', transition: 'color 0.3s' }}
-              onMouseOver={(e) => e.target.style.color = '#ffffff'}
-              onMouseOut={(e) => e.target.style.color = '#9ca3af'}
-            >
+            <a key={idx} href={`#${link.toLowerCase()}`}>
               {link}
             </a>
           ))}
         </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, x: 30 }} 
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          style={{ display: 'flex', gap: '15px', alignItems: 'center' }}
-        >
-          <button 
-            onClick={() => setUiView('ADMIN_LOGIN')} 
-            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '9999px', padding: '10px 20px', color: '#ffffff', fontFamily: 'var(--body-font)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.3s' }}
-            onMouseOver={(e) => { e.target.style.background = '#ffffff'; e.target.style.color = '#000000'; }}
-            onMouseOut={(e) => { e.target.style.background = 'transparent'; e.target.style.color = '#ffffff'; }}
-          >
-            Host Login
-          </button>
-          <button 
-            onClick={() => setUiView('ENTER_GAME')} 
-            className="magnetic-btn-primary"
-            style={{ padding: '10px 22px', fontSize: '0.8rem' }}
-          >
-            <div className="bg-hover" />
-            <span>Join Now</span>
-          </button>
-        </motion.div>
       </nav>
+
 
       {/* Hero Section */}
       <header id="arena" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '130px 5% 50px 5%', position: 'relative', zIndex: 10 }}>
@@ -382,26 +368,25 @@ function App() {
       </section>
 
       {/* Footer */}
-      <footer style={{ padding: '40px 5%', borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(16px)', position: 'relative', zIndex: 10, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
-        
-        <div style={{ display: 'flex', gap: '25px' }}>
+      <footer className="app-footer">
+        <div className="footer-social-group">
           {['TWITTER', 'INSTAGRAM', 'DISCORD'].map((s, i) => (
-            <a key={i} href="#" style={{ fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.2em', color: '#9ca3af', textDecoration: 'none', transition: 'color 0.3s' }} onMouseOver={(e) => e.target.style.color = '#fff'} onMouseOut={(e) => e.target.style.color = '#9ca3af'}>
+            <a key={i} href="#" className="footer-social-pill">
               {s}
             </a>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.2em', color: '#9ca3af', textTransform: 'uppercase' }}>
+        <div className="footer-author-badge">
           <span>BUILT BY</span>
-          <div style={{ width: '32px', height: '1px', background: '#374151' }} />
-          <span style={{ color: '#ffffff', fontWeight: 700 }}>MEET G. DAVE</span>
+          <span style={{ color: '#ffffff', fontWeight: 800 }}>MEET G. DAVE</span>
         </div>
 
-        <div style={{ fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 500, letterSpacing: '0.2em', color: '#4b5563', textTransform: 'uppercase' }}>
+        <div className="footer-copyright">
           ©2026 AiRA LAB. ALL RIGHTS RESERVED.
         </div>
       </footer>
+
     </div>
   );
 
