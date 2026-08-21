@@ -411,3 +411,188 @@ body {
   background: rgba(0, 0, 0, 0.4);
 }
 
+/* =============================================
+   SCORE POP ANIMATION
+   ============================================= */
+@keyframes scorePop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.4); color: var(--neon-green); text-shadow: 0 0 20px var(--neon-green); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.score-pop {
+  animation: scorePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* =============================================
+   TIMER ARC (SVG Circular Countdown)
+   ============================================= */
+.timer-arc-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 24px auto;
+}
+
+.timer-arc-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: rotate(-90deg);
+}
+
+.timer-arc-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 6;
+}
+
+.timer-arc-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.9s linear, stroke 0.5s ease;
+}
+
+.timer-arc-number {
+  font-family: var(--retro-font);
+  font-size: 1.4rem;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(255,255,255,0.5);
+}
+
+/* =============================================
+   ANSWER LOCKED STATE
+   ============================================= */
+@keyframes waitingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.answer-locked-box {
+  background: rgba(34, 211, 238, 0.08);
+  border: 2px solid var(--cyan);
+  border-radius: 16px;
+  padding: 28px 32px;
+  text-align: center;
+  margin-top: 20px;
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
+}
+
+.answer-locked-box .waiting-dots span {
+  display: inline-block;
+  animation: waitingPulse 1.2s ease-in-out infinite;
+}
+.answer-locked-box .waiting-dots span:nth-child(2) { animation-delay: 0.2s; }
+.answer-locked-box .waiting-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* =============================================
+   QUESTION PROGRESS BADGE
+   ============================================= */
+.q-progress-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-family: var(--retro-font);
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+/* =============================================
+   LEADERBOARD MEDALS
+   ============================================= */
+.lb-row-gold {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.15) 0%, transparent 100%);
+  border: 1px solid rgba(251, 191, 36, 0.3) !important;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.lb-row-silver {
+  background: linear-gradient(90deg, rgba(156, 163, 175, 0.12) 0%, transparent 100%);
+  border: 1px solid rgba(156, 163, 175, 0.25) !important;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.lb-row-bronze {
+  background: linear-gradient(90deg, rgba(180, 112, 60, 0.12) 0%, transparent 100%);
+  border: 1px solid rgba(180, 112, 60, 0.25) !important;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.lb-row-default {
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  padding: 14px 20px;
+}
+
+/* =============================================
+   ADMIN PLAYER LIST
+   ============================================= */
+.admin-player-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  font-family: var(--modern-font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.admin-player-chip .chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow: 0 0 6px var(--neon-green);
+  flex-shrink: 0;
+}
+
+/* =============================================
+   CORRECT ANSWER BAR HIGHLIGHT
+   ============================================= */
+.answer-bar-correct {
+  background: var(--neon-green) !important;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.4);
+}
+
+.answer-bar-default {
+  background: var(--cyan);
+}
+
+/* =============================================
+   RESULT OVERLAY (after time ends)
+   ============================================= */
+@keyframes resultSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-overlay {
+  animation: resultSlideUp 0.4s ease forwards;
+  background: rgba(10, 10, 15, 0.9);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  margin-top: 20px;
+}

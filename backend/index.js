@@ -7,15 +7,29 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors());
+app.use(express.json());
+
+// Health Check for Render / Uptime Monitoring
+app.get('/', (req, res) => {
+  res.status(200).send('🎮 Arcade Royale Backend is Running!');
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date() });
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
+const connectionString = process.env.DATABASE_URL;
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString,
+  ssl: connectionString && !connectionString.includes('localhost') ? { rejectUnauthorized: false } : false
 });
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 pool.connect((err, client, release) => {
   if (err) return console.error('Error acquiring client', err.stack);
@@ -39,7 +53,9 @@ let gameState = {
   currentQuestion: null,
   timeLeft: 0,
   leaderboard: [],
-  roomOtp: null
+  roomOtp: null,
+  currentQuestionIndex: 0,
+  totalQuestions: 0,
 };
 
 const generateOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
@@ -85,6 +101,13 @@ const questionsG3 = [
   { id: 22, text: 'MARATHON: Which of these is a classic 8-bit game?', options: ['Halo', 'Pac-Man', 'Fortnite', 'Minecraft'], answer: 1 }
 ];
 
+function saveLeaderboardToDB() {
+  const leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
+  leaderboard.forEach(p => {
+    pool.query('INSERT INTO players (nickname, score) VALUES ($1, $2)', [p.nickname, p.score]).catch(console.error);
+  });
+}
+
 function broadcastAnalytics() {
   io.emit('liveAnalytics', currentAnalytics);
 }
@@ -103,14 +126,23 @@ function startTimer(seconds, onFinish) {
   }, 1000);
 }
 
+function getQuestionList() {
+  if (gameState.phase === 'GAME2') return questionsG2;
+  if (gameState.phase === 'GAME3') return questionsG3;
+  return questionsG1;
+}
+
 function sendQuestion(q) {
   if (!q) return;
   gameState.currentQuestion = { id: q.id, text: q.text, options: q.options, image: q.image };
+  gameState.currentQuestionIndex = currentQuestionIndex;
+  gameState.totalQuestions = getQuestionList().length;
   
   currentAnalytics = {
     totalAnswers: 0,
     optionCounts: [0, 0, 0, 0],
-    fastestFingers: []
+    fastestFingers: [],
+    correctOption: q.answer
   };
   broadcastAnalytics();
 
@@ -127,6 +159,15 @@ function sendQuestion(q) {
 io.on('connection', (socket) => {
   socket.emit('gameStateUpdate', gameState);
   socket.emit('liveAnalytics', currentAnalytics);
+
+  // Admin authentication via socket
+  socket.on('adminAuth', (password, callback) => {
+    if (password === ADMIN_PASSWORD) {
+      callback({ success: true });
+    } else {
+      callback({ success: false, error: 'Incorrect password!' });
+    }
+  });
 
   socket.on('joinGame', (nickname) => {
     if (!gameState.roomOtp) {
@@ -163,10 +204,7 @@ io.on('connection', (socket) => {
     
     player.answered = true;
     
-    let currentQList = questionsG1;
-    if (gameState.phase === 'GAME2') currentQList = questionsG2;
-    if (gameState.phase === 'GAME3') currentQList = questionsG3;
-    
+    const currentQList = getQuestionList();
     const q = currentQList.find(x => x.id === gameState.currentQuestion.id);
     if (q) {
       currentAnalytics.totalAnswers++;
@@ -212,6 +250,8 @@ io.on('connection', (socket) => {
       gameState.currentQuestion = null;
       gameState.timeLeft = 0;
       gameState.roomOtp = null;
+      gameState.currentQuestionIndex = 0;
+      gameState.totalQuestions = 0;
       currentQuestionIndex = 0;
       currentAnalytics = { totalAnswers: 0, optionCounts: [0, 0, 0, 0], fastestFingers: [] };
       Object.values(gameState.players).forEach(p => {
@@ -225,13 +265,12 @@ io.on('connection', (socket) => {
       clearInterval(timerInterval);
       gameState.phase = 'GAME1';
       currentQuestionIndex = 0;
+      gameState.totalQuestions = questionsG1.length;
       Object.values(gameState.players).forEach(p => { p.answered = false; });
       io.emit('gameStateUpdate', gameState);
       sendQuestion(questionsG1[currentQuestionIndex]);
     } else if (action === 'NEXT_QUESTION') {
-      let currentQList = questionsG1;
-      if (gameState.phase === 'GAME2') currentQList = questionsG2;
-      if (gameState.phase === 'GAME3') currentQList = questionsG3;
+      const currentQList = getQuestionList();
       
       currentQuestionIndex++;
       if (currentQuestionIndex < currentQList.length) {
@@ -239,13 +278,17 @@ io.on('connection', (socket) => {
       } else {
         clearInterval(timerInterval);
         gameState.phase = 'LEADERBOARD';
+        gameState.currentQuestion = null;
         gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
+        // FIX: Save to DB when auto-transitioning to LEADERBOARD
+        saveLeaderboardToDB();
         io.emit('gameStateUpdate', gameState);
       }
     } else if (action === 'START_GAME2') {
       clearInterval(timerInterval);
       gameState.phase = 'GAME2';
       currentQuestionIndex = 0;
+      gameState.totalQuestions = questionsG2.length;
       Object.values(gameState.players).forEach(p => { p.answered = false; });
       io.emit('gameStateUpdate', gameState);
       sendQuestion(questionsG2[currentQuestionIndex]);
@@ -253,18 +296,16 @@ io.on('connection', (socket) => {
       clearInterval(timerInterval);
       gameState.phase = 'GAME3';
       currentQuestionIndex = 0;
+      gameState.totalQuestions = questionsG3.length;
       Object.values(gameState.players).forEach(p => { p.answered = false; });
       io.emit('gameStateUpdate', gameState);
       sendQuestion(questionsG3[currentQuestionIndex]);
     } else if (action === 'SHOW_LEADERBOARD') {
       clearInterval(timerInterval);
       gameState.phase = 'LEADERBOARD';
+      gameState.currentQuestion = null;
       gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
-      
-      gameState.leaderboard.forEach(p => {
-        pool.query('INSERT INTO players (nickname, score) VALUES ($1, $2)', [p.nickname, p.score]).catch(console.error);
-      });
-      
+      saveLeaderboardToDB();
       io.emit('gameStateUpdate', gameState);
     }
   });
