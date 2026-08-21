@@ -1,12 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
+const PATH_3D = [
+  { x: -3.5, z: 7.0 },  // Start on 3D Dock
+  { x: -3.5, z: 2.0 },  // Walk up dock path
+  { x: 0.0,  z: 2.0 },  // Turn right toward center
+  { x: 0.0,  z: -4.5 }  // Walk up to 3D Gym Entrance
+];
+
 export default function Pokemon3DReveal({ onComplete }) {
-  const mountRef = useRef(null);
-  const [fading, setFading] = useState(false);
+  const containerRef = useRef(null);
+  const [irisClose, setIrisClose] = useState(false);
 
   useEffect(() => {
-    const container = mountRef.current;
+    const container = containerRef.current;
     if (!container) return;
 
     const width = window.innerWidth;
@@ -14,15 +21,15 @@ export default function Pokemon3DReveal({ onComplete }) {
 
     // 1. Scene & Camera
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x050508);
-    scene.fog = new THREE.FogExp2(0x050508, 0.04);
+    scene.background = new THREE.Color(0x0a0c16);
+    scene.fog = new THREE.FogExp2(0x0a0c16, 0.035);
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 4, 12);
-    camera.lookAt(0, 1, 0);
+    camera.position.set(0, 8, 14);
+    camera.lookAt(0, 0, 0);
 
     // 2. Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -33,50 +40,66 @@ export default function Pokemon3DReveal({ onComplete }) {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    dirLight.position.set(10, 20, 10);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
-    scene.add(dirLight);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.3);
+    sun.position.set(8, 16, 10);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 1024;
+    sun.shadow.mapSize.height = 1024;
+    scene.add(sun);
 
-    const cyanPoint = new THREE.PointLight(0x00ffff, 2, 10);
-    cyanPoint.position.set(0, 2, 0);
-    scene.add(cyanPoint);
+    // 4. Water & Dock
+    const waterGeo = new THREE.PlaneGeometry(30, 8);
+    const waterMat = new THREE.MeshStandardMaterial({ color: 0x0f3460, roughness: 0.1, metalness: 0.5 });
+    const water = new THREE.Mesh(waterGeo, waterMat);
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(0, -0.1, 8.5);
+    scene.add(water);
 
-    // 4. Ground / Island
-    const islandGeo = new THREE.CylinderGeometry(8, 9, 1, 32);
-    const islandMat = new THREE.MeshStandardMaterial({ color: 0x1a2e1a, roughness: 0.8 });
-    const island = new THREE.Mesh(islandGeo, islandMat);
-    island.position.y = -0.5;
-    island.receiveShadow = true;
-    scene.add(island);
+    // Wooden Dock
+    const dockGeo = new THREE.BoxGeometry(2, 0.3, 4);
+    const dockMat = new THREE.MeshStandardMaterial({ color: 0x6b4226, roughness: 0.8 });
+    const dock = new THREE.Mesh(dockGeo, dockMat);
+    dock.position.set(-3.5, 0.1, 7.5);
+    dock.castShadow = true;
+    dock.receiveShadow = true;
+    scene.add(dock);
 
-    // Cobblestone Path
-    const pathGeo = new THREE.PlaneGeometry(2.5, 12);
-    const pathMat = new THREE.MeshStandardMaterial({ color: 0x3a3a4a, roughness: 0.9 });
-    const path = new THREE.Mesh(pathGeo, pathMat);
-    path.rotation.x = -Math.PI / 2;
-    path.position.set(0, 0.01, 2);
-    path.receiveShadow = true;
-    scene.add(path);
+    // 5. Grass Ground
+    const groundGeo = new THREE.PlaneGeometry(30, 20);
+    const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e3a1e, roughness: 0.9 });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(0, 0, -1.5);
+    ground.receiveShadow = true;
+    scene.add(ground);
 
-    // 5. 3D Trees
+    // 6. 3D Cobblestone Path
+    function createPathSegment(x, z, w, h) {
+      const geo = new THREE.PlaneGeometry(w, h);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x3d3a4e, roughness: 0.8 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, 0.01, z);
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+    scene.add(createPathSegment(-3.5, 4.25, 1.8, 5.5)); // Vertical Segment 1
+    scene.add(createPathSegment(-1.75, 2.0, 3.5, 1.8)); // Horizontal Segment 2
+    scene.add(createPathSegment(0.0, -1.25, 1.8, 6.5)); // Vertical Segment 3
+
+    // 7. 3D Low-Poly Pine Trees
     function createTree(x, z) {
       const treeGroup = new THREE.Group();
-      // Trunk
-      const trunkGeo = new THREE.CylinderGeometry(0.15, 0.25, 1.2, 8);
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18 });
-      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-      trunk.position.y = 0.6;
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2314 });
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 1.0, 8), trunkMat);
+      trunk.position.y = 0.5;
       trunk.castShadow = true;
       treeGroup.add(trunk);
 
-      // Leaves (Low poly cones)
-      const leafMat = new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.6 });
+      const leafMat = new THREE.MeshStandardMaterial({ color: 0x255c27, roughness: 0.7 });
       for (let i = 0; i < 3; i++) {
-        const cone = new THREE.Mesh(new THREE.ConeGeometry(1 - i * 0.2, 1.2, 7), leafMat);
-        cone.position.y = 1.2 + i * 0.7;
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.9 - i * 0.2, 1.1, 7), leafMat);
+        cone.position.y = 1.0 + i * 0.6;
         cone.castShadow = true;
         treeGroup.add(cone);
       }
@@ -85,139 +108,147 @@ export default function Pokemon3DReveal({ onComplete }) {
       return treeGroup;
     }
 
-    const treePositions = [
-      [-5, -2], [-6, 1], [-4, 4], [-5, -5],
-      [5, -2], [6, 1], [4, 4], [5, -5],
-      [-3, -6], [3, -6], [-6, -4], [6, -4]
+    const trees = [
+      [-6, 6], [-6, 3], [-6, 0], [-6, -3], [-6, -6],
+      [6, 6], [6, 3], [6, 0], [6, -3], [6, -6],
+      [-2, -5], [2, -5], [-2, 5], [2, 5],
+      [-5, -1], [5, -1]
     ];
-    treePositions.forEach(([x, z]) => scene.add(createTree(x, z)));
+    trees.forEach(([x, z]) => scene.add(createTree(x, z)));
 
-    // 6. Procedural 3D Pokéball
-    const pokeballGroup = new THREE.Group();
-    pokeballGroup.position.set(0, 1.5, 0);
-    scene.add(pokeballGroup);
+    // 8. 3D Arcade Gym Building Entrance
+    const gymGroup = new THREE.Group();
+    gymGroup.position.set(0, 0, -6.5);
 
-    const radius = 1.2;
+    // Main Building
+    const buildingGeo = new THREE.BoxGeometry(6, 4, 4);
+    const buildingMat = new THREE.MeshStandardMaterial({ color: 0x161b2e, roughness: 0.5, metalness: 0.2 });
+    const building = new THREE.Mesh(buildingGeo, buildingMat);
+    building.position.y = 2;
+    building.castShadow = true;
+    building.receiveShadow = true;
+    gymGroup.add(building);
 
-    // Top Shell (Red)
-    const topGeo = new THREE.SphereGeometry(radius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
-    const topMat = new THREE.MeshStandardMaterial({ color: 0xff1133, roughness: 0.2, metalness: 0.2 });
-    const topShell = new THREE.Mesh(topGeo, topMat);
-    topShell.castShadow = true;
+    // Roof Accent
+    const roofGeo = new THREE.ConeGeometry(4.5, 2, 4);
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0xe94560, roughness: 0.3 });
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = 5;
+    roof.castShadow = true;
+    gymGroup.add(roof);
 
-    // Bottom Shell (White)
-    const bottomGeo = new THREE.SphereGeometry(radius, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
-    const bottomMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.2, metalness: 0.1 });
-    const bottomShell = new THREE.Mesh(bottomGeo, bottomMat);
-    bottomShell.castShadow = true;
+    // Entrance Portal Archway (Glowing Cyan)
+    const doorGeo = new THREE.BoxGeometry(2, 2.5, 0.2);
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0x00ffff, emissiveIntensity: 0.6 });
+    const door = new THREE.Mesh(doorGeo, doorMat);
+    door.position.set(0, 1.25, 2.01);
+    gymGroup.add(door);
 
-    // Center Band (Black)
-    const bandGeo = new THREE.CylinderGeometry(radius + 0.01, radius + 0.01, 0.15, 32);
-    const bandMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
-    const band = new THREE.Mesh(bandGeo, bandMat);
+    const doorLight = new THREE.PointLight(0x00ffff, 3, 8);
+    doorLight.position.set(0, 2, 2.5);
+    gymGroup.add(doorLight);
 
-    // Button Outer Ring (Black)
-    const buttonRingGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.1, 32);
-    const buttonRing = new THREE.Mesh(buttonRingGeo, bandMat);
-    buttonRing.rotation.x = Math.PI / 2;
-    buttonRing.position.z = radius + 0.02;
+    scene.add(gymGroup);
 
-    // Button Inner Core (Glowing Cyan/White)
-    const buttonCoreGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.12, 32);
-    const buttonCoreMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x00ffff, emissiveIntensity: 0.8 });
-    const buttonCore = new THREE.Mesh(buttonCoreGeo, buttonCoreMat);
-    buttonCore.rotation.x = Math.PI / 2;
-    buttonCore.position.z = radius + 0.03;
+    // 9. 3D Trainer Character (Sprite Billboard / Animated Texture)
+    const textureLoader = new THREE.TextureLoader();
+    const trainerTexture = textureLoader.load('/pokemon-trainer.png');
+    trainerTexture.magFilter = THREE.NearestFilter;
+    trainerTexture.minFilter = THREE.NearestFilter;
 
-    // Assemble Pokéball
-    const topGroup = new THREE.Group();
-    topGroup.add(topShell);
-    pokeballGroup.add(topGroup);
-    pokeballGroup.add(bottomShell);
-    pokeballGroup.add(band);
-    pokeballGroup.add(buttonRing);
-    pokeballGroup.add(buttonCore);
+    // Sprite Sheet setup: 4 columns x 4 rows
+    trainerTexture.repeat.set(1 / 4, 1 / 4);
 
-    // 7. Light Beam Effect (Hidden initially)
-    const beamGeo = new THREE.CylinderGeometry(0.1, 3, 20, 32, 1, true);
-    const beamMat = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0,
-      side: THREE.DoubleSide
-    });
-    const beam = new THREE.Mesh(beamGeo, beamMat);
-    beam.position.set(0, 10, 0);
-    scene.add(beam);
+    const spriteMat = new THREE.SpriteMaterial({ map: trainerTexture, transparent: true });
+    const trainerSprite = new THREE.Sprite(spriteMat);
+    trainerSprite.scale.set(1.6, 1.6, 1);
+    trainerSprite.position.set(PATH_3D[0].x, 0.8, PATH_3D[0].z);
+    scene.add(trainerSprite);
 
-    // 8. Particle System
-    const particleCount = 250;
-    const particleGeo = new THREE.BufferGeometry();
-    const posArray = new Float32Array(particleCount * 3);
+    // 3D Pixel Shadow beneath Trainer
+    const shadowGeo = new THREE.PlaneGeometry(1.0, 0.5);
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4 });
+    const trainerShadow = new THREE.Mesh(shadowGeo, shadowMat);
+    trainerShadow.rotation.x = -Math.PI / 2;
+    trainerShadow.position.set(PATH_3D[0].x, 0.02, PATH_3D[0].z);
+    scene.add(trainerShadow);
 
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      posArray[i] = (Math.random() - 0.5) * 12;
-      posArray[i + 1] = Math.random() * 8;
-      posArray[i + 2] = (Math.random() - 0.5) * 12;
-    }
-    particleGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    // 10. Trainer Movement & Animation Loop
+    let currentWaypoint = 0;
+    let trainerPos = { x: PATH_3D[0].x, z: PATH_3D[0].z };
+    let moveSpeed = 0.045;
+    let animFrame = 0;
+    let dirRow = 3; // Up = 3, Right = 1, Down = 0, Left = 2
+    let isMoving = true;
+    let triggerIris = false;
 
-    const particleMat = new THREE.PointsMaterial({
-      size: 0.08,
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.8
-    });
-    const particles = new THREE.Points(particleGeo, particleMat);
-    scene.add(particles);
-
-    // 9. Animation State Loop
-    let startTime = Date.now();
-    let animId;
-    let completed = false;
-
-    function animate() {
-      animId = requestAnimationFrame(animate);
-
-      const elapsed = (Date.now() - startTime) / 1000;
-
-      // Float & Spin
-      if (elapsed < 3.0) {
-        pokeballGroup.position.y = 1.5 + Math.sin(elapsed * 3) * 0.15;
-        pokeballGroup.rotation.y = elapsed * 1.2;
-        camera.position.x = Math.sin(elapsed * 0.5) * 3;
-      } else if (elapsed < 4.0) {
-        // Charge / Pulse Button
-        const p = (elapsed - 3.0);
-        buttonCoreMat.emissiveIntensity = 1.0 + Math.sin(p * 20) * 2.0;
-        cyanPoint.intensity = 2 + p * 5;
-        topGroup.rotation.x = -p * 0.8; // Open Pokéball top shell
-      } else if (elapsed < 5.2) {
-        // Energy Beam & Zoom
-        const p = (elapsed - 4.0) / 1.2;
-        beamMat.opacity = Math.min(1.0, p * 2.0);
-        beam.scale.set(1 + p * 3, 1, 1 + p * 3);
-        camera.position.z = 12 - p * 11;
-        camera.position.y = 4 - p * 3;
-        buttonCoreMat.emissiveIntensity = 10;
-        
-        if (p > 0.7 && !fading) {
-          setFading(true);
-        }
-      } else if (!completed) {
-        completed = true;
-        if (onComplete) onComplete();
+    // Leg anim interval
+    const animInterval = setInterval(() => {
+      if (isMoving) {
+        animFrame = (animFrame + 1) % 4;
+      } else {
+        animFrame = 0;
       }
+      trainerTexture.offset.x = animFrame / 4;
+      trainerTexture.offset.y = (3 - dirRow) / 4;
+    }, 120);
 
-      // Rotate Particles
-      particles.rotation.y = elapsed * 0.1;
+    let animId;
+    function renderLoop() {
+      animId = requestAnimationFrame(renderLoop);
+
+      if (isMoving && currentWaypoint < PATH_3D.length - 1) {
+        const target = PATH_3D[currentWaypoint + 1];
+        const dx = target.x - trainerPos.x;
+        const dz = target.z - trainerPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        // Update direction row
+        if (Math.abs(dz) > Math.abs(dx)) {
+          dirRow = dz < 0 ? 3 : 0; // 3 = Up, 0 = Down
+        } else {
+          dirRow = dx > 0 ? 1 : 2; // 1 = Right, 2 = Left
+        }
+
+        if (dist < moveSpeed) {
+          trainerPos.x = target.x;
+          trainerPos.z = target.z;
+          currentWaypoint++;
+
+          if (currentWaypoint >= PATH_3D.length - 1) {
+            isMoving = false;
+            // Trigger Iris Close when reaching Gym Door
+            if (!triggerIris) {
+              triggerIris = true;
+              setIrisClose(true);
+              setTimeout(() => {
+                if (onComplete) onComplete();
+              }, 2000);
+            }
+          }
+        } else {
+          trainerPos.x += (dx / dist) * moveSpeed;
+          trainerPos.z += (dz / dist) * moveSpeed;
+        }
+
+        // Update Trainer & Shadow
+        trainerSprite.position.x = trainerPos.x;
+        trainerSprite.position.z = trainerPos.z;
+        trainerShadow.position.x = trainerPos.x;
+        trainerShadow.position.z = trainerPos.z;
+
+        // Smooth Camera Follow
+        camera.position.x = THREE.MathUtils.lerp(camera.position.x, trainerPos.x * 0.4, 0.05);
+        camera.position.z = THREE.MathUtils.lerp(camera.position.z, trainerPos.z + 7.5, 0.05);
+        camera.lookAt(trainerPos.x * 0.4, 1.2, trainerPos.z - 2.0);
+      }
 
       renderer.render(scene, camera);
     }
 
-    animate();
+    renderLoop();
 
-    // 10. Resize Handler
     const handleResize = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -230,6 +261,7 @@ export default function Pokemon3DReveal({ onComplete }) {
 
     return () => {
       cancelAnimationFrame(animId);
+      clearInterval(animInterval);
       window.removeEventListener('resize', handleResize);
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -240,30 +272,20 @@ export default function Pokemon3DReveal({ onComplete }) {
 
   return (
     <div 
-      style={{ 
-        position: 'fixed', 
-        inset: 0, 
-        zIndex: 3000, 
-        background: '#050508', 
-        opacity: fading ? 0 : 1, 
-        transition: 'opacity 0.8s ease-out' 
+      className={`pokemon-game-container ${irisClose ? 'iris-close' : ''}`}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 3000,
+        background: '#0a0c16',
+        overflow: 'hidden'
       }}
     >
-      <div ref={mountRef} style={{ width: '100vw', height: '100vh' }} />
-
-      {/* Title Overlay */}
-      <div style={{ position: 'absolute', top: '10%', width: '100%', textAlign: 'center', pointerEvents: 'none' }}>
-        <h2 style={{ fontFamily: 'var(--display-font)', fontSize: '2rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.2em', textShadow: '0 0 20px rgba(0,255,255,0.8)' }}>
-          POKÉMON ARENA 3D
-        </h2>
-        <p style={{ fontFamily: 'var(--body-font)', fontSize: '0.85rem', color: '#9ca3af', letterSpacing: '0.15em', marginTop: '8px' }}>
-          INITIALIZING WEBGL EXPERIENCE...
-        </p>
-      </div>
+      <div ref={containerRef} style={{ width: '100vw', height: '100vh' }} />
 
       {/* Skip Button */}
       <button 
-        onClick={() => { setFading(true); setTimeout(onComplete, 500); }}
+        onClick={() => { setIrisClose(true); setTimeout(onComplete, 1000); }}
         style={{
           position: 'absolute',
           bottom: '30px',
@@ -271,7 +293,7 @@ export default function Pokemon3DReveal({ onComplete }) {
           padding: '12px 24px',
           borderRadius: '9999px',
           border: '1px solid rgba(255,255,255,0.3)',
-          background: 'rgba(255,255,255,0.05)',
+          background: 'rgba(0,0,0,0.4)',
           backdropFilter: 'blur(10px)',
           color: '#ffffff',
           fontFamily: 'var(--body-font)',
