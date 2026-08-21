@@ -204,16 +204,14 @@ function App() {
       <div className="video-overlay-linear" />
 
       {/* Header / Navigation */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, width: '100%', padding: '24px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100, backdropFilter: 'blur(10px)', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+      <nav style={{ position: 'fixed', top: 0, left: 0, width: '100%', padding: '20px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100, backdropFilter: 'blur(12px)', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <motion.div 
           initial={{ opacity: 0, x: -30 }} 
           animate={{ opacity: 1, x: 0 }} 
           transition={{ duration: 0.8 }}
-          style={{ display: 'flex', alignItems: 'center', gap: '15px' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
         >
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#ffffff', color: '#000000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.2rem', fontFamily: 'var(--retro-font)', boxShadow: '0 0 20px rgba(255,255,255,0.4)' }}>
-            A
-          </div>
+          <img src="/favicon.svg" alt="Arcade Royale Logo" style={{ width: '38px', height: '38px', filter: 'drop-shadow(0 0 12px rgba(0,255,255,0.6))' }} />
           <span style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '1.3rem', letterSpacing: '0.15em', color: '#ffffff' }}>
             ARCADE <span style={{ color: 'var(--cyan)' }}>ROYALE</span>
           </span>
@@ -223,7 +221,8 @@ function App() {
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          style={{ display: 'flex', gap: '40px', alignItems: 'center' }}
+          className="nav-center-links"
+          style={{ display: 'flex', gap: '32px', alignItems: 'center' }}
         >
           {['ARENA', 'MODES', 'POSTER', 'LEADERBOARD'].map((link, idx) => (
             <a 
@@ -242,11 +241,11 @@ function App() {
           initial={{ opacity: 0, x: 30 }} 
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
-          style={{ display: 'flex', gap: '20px', alignItems: 'center' }}
+          style={{ display: 'flex', gap: '15px', alignItems: 'center' }}
         >
           <button 
             onClick={() => setUiView('ADMIN_LOGIN')} 
-            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '9999px', padding: '10px 24px', color: '#ffffff', fontFamily: 'var(--body-font)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.3s' }}
+            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '9999px', padding: '10px 20px', color: '#ffffff', fontFamily: 'var(--body-font)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.3s' }}
             onMouseOver={(e) => { e.target.style.background = '#ffffff'; e.target.style.color = '#000000'; }}
             onMouseOut={(e) => { e.target.style.background = 'transparent'; e.target.style.color = '#ffffff'; }}
           >
@@ -255,7 +254,7 @@ function App() {
           <button 
             onClick={() => setUiView('ENTER_GAME')} 
             className="magnetic-btn-primary"
-            style={{ padding: '10px 24px', fontSize: '0.8rem' }}
+            style={{ padding: '10px 22px', fontSize: '0.8rem' }}
           >
             <div className="bg-hover" />
             <span>Join Now</span>
@@ -264,7 +263,7 @@ function App() {
       </nav>
 
       {/* Hero Section */}
-      <header id="arena" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '140px 5% 60px 5%', position: 'relative', zIndex: 10 }}>
+      <header id="arena" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '130px 5% 50px 5%', position: 'relative', zIndex: 10 }}>
         
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -274,10 +273,11 @@ function App() {
         >
           <div className="glass-badge">✦ LEVEL 99 RETRO SHOWDOWN</div>
 
-          <h1 className="hero-headline" style={{ marginTop: '30px', marginBottom: '25px' }}>
-            SURVIVE THE <br/>
+          <h1 className="hero-headline" style={{ marginTop: '25px', marginBottom: '20px' }}>
+            THE ULTIMATE REAL-TIME <br/>
             <span className="italic-word">ARCADE</span> SHOWDOWN
           </h1>
+
 
           <p style={{ fontFamily: 'var(--body-font)', fontSize: '1.25rem', fontWeight: 300, color: '#9ca3af', lineHeight: 1.7, marginBottom: '45px', maxWidth: '650px' }}>
             A massive 100-player retro showdown. Test your reflexes, your meme knowledge, and your will to win in an immersive digital arena.
@@ -789,7 +789,7 @@ function App() {
         className="container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}
       >
         {/* Score HUD */}
-        <div className="glass-card" style={{ position: 'fixed', top: 20, right: 20, textAlign: 'right', padding: '12px 20px', background: 'rgba(10,10,15,0.8)', zIndex: 50 }}>
+        <div className="score-hud glass-card" style={{ position: 'fixed', top: 20, right: 20, textAlign: 'right', padding: '12px 20px', background: 'rgba(10,10,15,0.8)', zIndex: 50 }}>
            <p style={{ color: '#aaa', fontSize: '0.75rem', marginBottom: '4px', fontFamily: 'var(--modern-font)' }}>PLAYER: <span style={{ color: '#fff' }}>{nickname}</span></p>
            <p key={scoreAnimKey} className="score-pop" style={{ color: 'var(--neon-green)', fontSize: '1.2rem', fontFamily: 'var(--retro-font)' }}>SCORE: {myScore}</p>
         </div>
@@ -835,7 +835,7 @@ function App() {
                 <p style={{ fontFamily: 'var(--modern-font)', color: '#aaa', fontSize: '0.9rem' }}>Waiting for others<span className="waiting-dots"><span>.</span><span>.</span><span>.</span></span></p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div className="mobile-stack-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 {safeCurrentQuestion.options?.map((opt, i) => (
                   <button 
                     key={i} 
@@ -855,6 +855,8 @@ function App() {
       </motion.div>
     );
   };
+
+
 
   // ── Leaderboard ───────────────────────────────────────────────────────────
   const renderLeaderboard = () => {

@@ -305,17 +305,115 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
-/* Bounce Indicator */
-@keyframes bounceSlow {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  50% { transform: translateY(8px); opacity: 1; }
+/* =============================================
+   MOBILE RESPONSIVENESS & TOUCH OPTIMIZATIONS
+   ============================================= */
+
+@media (max-width: 900px) {
+  .admin-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
-.scroll-indicator-line {
-  width: 1px;
-  height: 48px;
-  background: linear-gradient(to bottom, #ffffff, transparent);
-  animation: bounceSlow 2s ease-in-out infinite;
+@media (max-width: 768px) {
+  /* Navbar */
+  nav {
+    padding: 12px 16px !important;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .nav-center-links {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    gap: 16px !important;
+    overflow-x: auto;
+    padding-top: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .nav-center-links a {
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+  }
+
+  /* Hero Section */
+  .hero-headline {
+    font-size: clamp(1.8rem, 8vw, 2.8rem) !important;
+    line-height: 1.15 !important;
+  }
+
+  .glass-card {
+    padding: 24px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Buttons & Inputs */
+  .retro-btn, .magnetic-btn-primary, .glass-btn-secondary {
+    min-height: 48px;
+    padding: 12px 20px !important;
+    font-size: 0.85rem !important;
+    touch-action: manipulation;
+  }
+
+  .retro-input {
+    font-size: 1rem !important;
+    padding: 12px 16px !important;
+    max-width: 100% !important;
+  }
+
+  /* Grid Layouts */
+  .mobile-stack-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .lb-row-gold, .lb-row-silver, .lb-row-bronze, .lb-row-default {
+    padding: 12px 14px !important;
+  }
+
+  .lb-nickname {
+    font-size: 1.1rem !important;
+  }
+
+  .lb-score {
+    font-size: 1.2rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-headline {
+    font-size: 1.6rem !important;
+  }
+
+  .timer-arc-wrapper {
+    width: 70px !important;
+    height: 70px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .timer-arc-svg {
+    width: 70px !important;
+    height: 70px !important;
+  }
+
+  .timer-arc-number {
+    font-size: 1.1rem !important;
+  }
+
+  .score-hud {
+    top: 10px !important;
+    right: 10px !important;
+    padding: 6px 12px !important;
+  }
+
+  .music-toggle-btn {
+    bottom: 10px !important;
+    left: 10px !important;
+    padding: 8px 14px !important;
+    font-size: 0.75rem !important;
+  }
 }
 
 
