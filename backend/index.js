@@ -38,8 +38,11 @@ let gameState = {
   players: {}, 
   currentQuestion: null,
   timeLeft: 0,
-  leaderboard: []
+  leaderboard: [],
+  roomOtp: null
 };
+
+const generateOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
 
 let currentAnalytics = {
   totalAnswers: 0,
@@ -126,8 +129,32 @@ io.on('connection', (socket) => {
   socket.emit('liveAnalytics', currentAnalytics);
 
   socket.on('joinGame', (nickname) => {
-    gameState.players[socket.id] = { id: socket.id, nickname, score: 0, answered: false };
+    if (!gameState.roomOtp) {
+      gameState.roomOtp = generateOtp();
+    }
+    if (gameState.phase === 'LOBBY') {
+      gameState.phase = 'VERIFICATION';
+    }
+    gameState.players[socket.id] = { id: socket.id, nickname, score: 0, answered: false, verified: false };
     io.emit('gameStateUpdate', gameState);
+  });
+
+  socket.on('verifyOtp', (otpInput) => {
+    if (!gameState.players[socket.id]) return;
+    if (otpInput && otpInput.toString().trim() === gameState.roomOtp) {
+      gameState.players[socket.id].verified = true;
+      socket.emit('otpResult', { success: true });
+      io.emit('gameStateUpdate', gameState);
+    } else {
+      socket.emit('otpResult', { success: false, error: 'Incorrect OTP! Check host screen.' });
+    }
+  });
+
+  socket.on('verifyPresence', () => {
+    if (gameState.players[socket.id]) {
+      gameState.players[socket.id].verified = true;
+      io.emit('gameStateUpdate', gameState);
+    }
   });
 
   socket.on('submitAnswer', (optionIndex) => {
@@ -163,9 +190,42 @@ io.on('connection', (socket) => {
   });
 
   socket.on('adminAction', (action, payload) => {
-    if (action === 'START_GAME1') {
+    if (action === 'START_VERIFICATION' || action === 'GENERATE_NEW_OTP') {
+      clearInterval(timerInterval);
+      gameState.phase = 'VERIFICATION';
+      gameState.roomOtp = generateOtp();
+      gameState.currentQuestion = null;
+      if (action === 'START_VERIFICATION') {
+        Object.values(gameState.players).forEach(p => { p.verified = false; });
+      }
+      io.emit('gameStateUpdate', gameState);
+    } else if (action === 'KICK_UNVERIFIED') {
+      Object.keys(gameState.players).forEach(id => {
+        if (!gameState.players[id].verified) {
+          delete gameState.players[id];
+        }
+      });
+      io.emit('gameStateUpdate', gameState);
+    } else if (action === 'STOP_GAME' || action === 'RESET_LOBBY') {
+      clearInterval(timerInterval);
+      gameState.phase = 'LOBBY';
+      gameState.currentQuestion = null;
+      gameState.timeLeft = 0;
+      gameState.roomOtp = null;
+      currentQuestionIndex = 0;
+      currentAnalytics = { totalAnswers: 0, optionCounts: [0, 0, 0, 0], fastestFingers: [] };
+      Object.values(gameState.players).forEach(p => {
+        p.score = 0;
+        p.answered = false;
+        p.verified = false;
+      });
+      io.emit('gameStateUpdate', gameState);
+      broadcastAnalytics();
+    } else if (action === 'START_GAME1') {
+      clearInterval(timerInterval);
       gameState.phase = 'GAME1';
       currentQuestionIndex = 0;
+      Object.values(gameState.players).forEach(p => { p.answered = false; });
       io.emit('gameStateUpdate', gameState);
       sendQuestion(questionsG1[currentQuestionIndex]);
     } else if (action === 'NEXT_QUESTION') {
@@ -177,22 +237,27 @@ io.on('connection', (socket) => {
       if (currentQuestionIndex < currentQList.length) {
         sendQuestion(currentQList[currentQuestionIndex]);
       } else {
-        // Automatically show leaderboard if questions run out
+        clearInterval(timerInterval);
         gameState.phase = 'LEADERBOARD';
         gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
         io.emit('gameStateUpdate', gameState);
       }
     } else if (action === 'START_GAME2') {
+      clearInterval(timerInterval);
       gameState.phase = 'GAME2';
       currentQuestionIndex = 0;
+      Object.values(gameState.players).forEach(p => { p.answered = false; });
       io.emit('gameStateUpdate', gameState);
       sendQuestion(questionsG2[currentQuestionIndex]);
     } else if (action === 'START_GAME3') {
+      clearInterval(timerInterval);
       gameState.phase = 'GAME3';
       currentQuestionIndex = 0;
+      Object.values(gameState.players).forEach(p => { p.answered = false; });
       io.emit('gameStateUpdate', gameState);
       sendQuestion(questionsG3[currentQuestionIndex]);
     } else if (action === 'SHOW_LEADERBOARD') {
+      clearInterval(timerInterval);
       gameState.phase = 'LEADERBOARD';
       gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
       

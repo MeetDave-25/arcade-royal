@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import Pokemon3DReveal from './Pokemon3DReveal';
+import PokemonReveal from './PokemonReveal';
 import './index.css';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
@@ -23,6 +23,10 @@ function App() {
   const [answerResult, setAnswerResult] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   
+  // OTP Verification States
+  const [otpInput, setOtpInput] = useState('');
+  const [otpError, setOtpError] = useState('');
+  
   // Music State
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef(null);
@@ -38,6 +42,14 @@ function App() {
 
   const { scrollYProgress } = useScroll();
   const yParallax = useTransform(scrollYProgress, [0, 1], [0, -200]);
+
+  // Safe accessors to prevent any null/undefined runtime crashes
+  const safePlayers = gameState?.players || {};
+  const safePlayerList = Object.values(safePlayers);
+  const safePlayerCount = safePlayerList.length;
+  const safeMyPlayer = (socket?.id && safePlayers[socket.id]) ? safePlayers[socket.id] : null;
+  const safeCurrentQuestion = gameState?.currentQuestion;
+  const safeAnalytics = liveAnalytics || { totalAnswers: 0, optionCounts: [0,0,0,0], fastestFingers: [] };
 
   useEffect(() => {
     socket.on('gameStateUpdate', (state) => {
@@ -64,12 +76,21 @@ function App() {
       setAnswerResult(result);
     });
 
+    socket.on('otpResult', (res) => {
+      if (res.success) {
+        setOtpError('');
+      } else {
+        setOtpError(res.error || 'Invalid OTP');
+      }
+    });
+
     return () => {
       socket.off('gameStateUpdate');
       socket.off('liveAnalytics');
       socket.off('question');
       socket.off('timer');
       socket.off('answerResult');
+      socket.off('otpResult');
     };
   }, []);
 
@@ -98,6 +119,16 @@ function App() {
 
   const adminAction = (action) => {
     socket.emit('adminAction', action);
+  };
+
+  const handleVerifyPresence = () => {
+    socket.emit('verifyPresence');
+  };
+
+  const handleSubmitOtp = (e) => {
+    e.preventDefault();
+    if (!otpInput || otpInput.trim() === '') return;
+    socket.emit('verifyOtp', otpInput.trim());
   };
 
   const renderLandingPage = () => (
@@ -284,10 +315,9 @@ function App() {
             style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}
           >
             <motion.img 
-              style={{ y: yParallax }} 
               src="/psoter1.png" alt="Retro Poster" 
               className="glass-card"
-              style={{ width: '100%', maxWidth: '480px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)', padding: 0 }} 
+              style={{ y: yParallax, width: '100%', maxWidth: '480px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)', padding: 0 }} 
             />
           </motion.div>
           
@@ -419,11 +449,16 @@ function App() {
             <h2 style={{ fontFamily: 'var(--retro-font)', color: 'var(--neon-green)', marginBottom: '10px', fontSize: '2rem' }}>ADMIN DASHBOARD</h2>
             <div style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '15px', padding: '30px', margin: '20px 0', border: '1px solid rgba(255,255,255,0.1)' }}>
               <p style={{ fontSize: '1.2rem', color: '#ccc', fontFamily: 'var(--modern-font)' }}>Connected Players</p>
-              <p className="gradient-text" style={{ fontSize: '6rem', margin: '10px 0', fontFamily: 'var(--retro-font)' }}>{Object.keys(gameState.players).length}</p>
+              <p className="gradient-text" style={{ fontSize: '6rem', margin: '10px 0', fontFamily: 'var(--retro-font)' }}>{safePlayerCount}</p>
             </div>
-            <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '20px', fontSize: '1.2rem' }}>
-              START ARCADE
-            </button>
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px', fontSize: '1rem', flex: 1, minWidth: '180px' }}>
+                VERIFY PRESENCE ✋
+              </button>
+              <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '15px', fontSize: '1rem', flex: 1, minWidth: '180px' }}>
+                START ARCADE 🚀
+              </button>
+            </div>
           </div>
         ) : (
           <div>
@@ -432,7 +467,7 @@ function App() {
             </motion.h2>
             <div style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '15px', padding: '30px', margin: '40px 0', border: '1px solid rgba(255,255,255,0.1)' }}>
               <p style={{ fontSize: '1.2rem', color: '#ccc', fontFamily: 'var(--modern-font)' }}>PLAYERS IN LOBBY</p>
-              <p style={{ color: 'var(--cyan)', fontSize: '4rem', fontFamily: 'var(--retro-font)', marginTop: '20px' }}>{Object.keys(gameState.players).length}</p>
+              <p style={{ color: 'var(--cyan)', fontSize: '4rem', fontFamily: 'var(--retro-font)', marginTop: '20px' }}>{safePlayerCount}</p>
             </div>
             <p style={{ color: '#aaa', fontSize: '1.1rem', fontFamily: 'var(--modern-font)' }}>LOGGED IN AS:</p>
             <h3 style={{ color: 'var(--hot-pink)', marginTop: '10px', fontSize: '2rem', fontFamily: 'var(--retro-font)' }}>{nickname}</h3>
@@ -442,9 +477,145 @@ function App() {
     </motion.div>
   );
 
+  const renderVerificationPage = () => {
+    const playersList = safePlayerList;
+    const verifiedCount = playersList.filter(p => p && p.verified).length;
+    const totalPlayers = playersList.length;
+    const myPlayer = safeMyPlayer;
+
+    if (isAdmin) {
+      return (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px' }}
+        >
+          <div className="glass-card" style={{ width: '100%', maxWidth: '750px', padding: '50px', textAlign: 'center', background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(20px)' }}>
+            <div className="glass-badge" style={{ marginBottom: '15px', color: 'var(--cyan)' }}>LIVE CHECK-IN SYSTEM</div>
+            <h1 style={{ fontFamily: 'var(--retro-font)', fontSize: '2.2rem', color: '#fff', marginBottom: '15px' }}>PRESENCE VERIFICATION</h1>
+            
+            {/* BIG PROMINENT HOST OTP DISPLAY CARD */}
+            <div style={{ background: 'rgba(34, 211, 238, 0.08)', border: '2px dashed var(--cyan)', borderRadius: '16px', padding: '20px', margin: '20px 0', textAlign: 'center' }}>
+              <p style={{ color: '#aaa', fontFamily: 'var(--modern-font)', fontSize: '0.85rem', letterSpacing: '2px', textTransform: 'uppercase' }}>✦ ROOM VERIFICATION OTP ✦</p>
+              <div style={{ fontFamily: 'var(--retro-font)', fontSize: '4rem', color: 'var(--cyan)', letterSpacing: '12px', margin: '10px 0', textShadow: '0 0 25px rgba(34, 211, 238, 0.6)' }}>
+                {gameState.roomOtp || '----'}
+              </div>
+              <p style={{ color: '#ccc', fontFamily: 'var(--modern-font)', fontSize: '0.95rem' }}>Share this 4-digit OTP code on the main screen / post for players to enter!</p>
+              <button onClick={() => adminAction('GENERATE_NEW_OTP')} className="retro-btn" style={{ marginTop: '12px', fontSize: '0.8rem', padding: '8px 16px', borderColor: 'var(--cyan)', color: 'var(--cyan)' }}>
+                GENERATE NEW OTP 🔄
+              </button>
+            </div>
+
+            <div style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '15px', padding: '20px', margin: '20px 0', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+              <div>
+                <p style={{ color: '#aaa', fontFamily: 'var(--modern-font)', fontSize: '0.9rem' }}>VERIFIED PLAYERS</p>
+                <p className="gradient-text" style={{ fontSize: '3rem', fontFamily: 'var(--retro-font)', margin: '5px 0' }}>{verifiedCount} / {totalPlayers}</p>
+              </div>
+              <div style={{ width: '1px', height: '50px', background: 'rgba(255,255,255,0.1)' }} />
+              <div>
+                <p style={{ color: '#aaa', fontFamily: 'var(--modern-font)', fontSize: '0.9rem' }}>STATUS</p>
+                <p style={{ color: verifiedCount === totalPlayers && totalPlayers > 0 ? 'var(--neon-green)' : 'gold', fontSize: '1.3rem', fontFamily: 'var(--retro-font)', marginTop: '5px' }}>
+                  {verifiedCount === totalPlayers && totalPlayers > 0 ? 'ALL READY!' : 'CHECKING...'}
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '15px', maxHeight: '180px', overflowY: 'auto', padding: '10px', marginBottom: '30px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              {playersList.length === 0 ? (
+                <p style={{ color: '#888', gridColumn: '1 / -1', padding: '20px' }}>No players in lobby</p>
+              ) : (
+                playersList.map((p) => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: p.verified ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: p.verified ? '1px solid var(--neon-green)' : '1px solid rgba(255,255,255,0.1)' }}>
+                    <span style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, color: '#fff', fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nickname}</span>
+                    <span style={{ fontSize: '0.85rem', fontFamily: 'var(--retro-font)', color: p.verified ? 'var(--neon-green)' : '#888' }}>
+                      {p.verified ? '✅' : '⏳'}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ flex: 1, minWidth: '160px', borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '15px', fontSize: '0.95rem' }}>
+                START GAME 1
+              </button>
+              <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ flex: 1, minWidth: '160px', borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px', fontSize: '0.95rem' }}>
+                START GAME 2 (COMEDY)
+              </button>
+              <button onClick={() => adminAction('KICK_UNVERIFIED')} className="retro-btn" style={{ borderColor: '#eab308', color: '#eab308', padding: '15px', fontSize: '0.85rem' }}>
+                KICK UNVERIFIED
+              </button>
+              <button onClick={() => adminAction('RESET_LOBBY')} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', padding: '15px', fontSize: '0.85rem' }}>
+                RESET LOBBY
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    const isVerified = myPlayer?.verified;
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+        className="container" style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}
+      >
+        <div className="glass-card" style={{ textAlign: 'center', padding: '50px', maxWidth: '550px', width: '100%', background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(20px)' }}>
+          <div className="glass-badge" style={{ marginBottom: '20px', color: 'var(--hot-pink)' }}>ENTER OTP CODE</div>
+          
+          <h2 style={{ fontFamily: 'var(--retro-font)', color: '#fff', fontSize: '2rem', marginBottom: '15px' }}>
+            PRESENCE CHECK
+          </h2>
+
+          <p style={{ fontFamily: 'var(--modern-font)', color: '#ccc', fontSize: '1rem', marginBottom: '30px', lineHeight: '1.6' }}>
+            Enter the 4-digit OTP shown on the Host screen / post to verify your presence!
+          </p>
+
+          {isVerified ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              style={{ background: 'rgba(34, 197, 94, 0.15)', border: '2px solid var(--neon-green)', padding: '30px', borderRadius: '16px', boxShadow: '0 0 30px rgba(34, 197, 94, 0.2)' }}
+            >
+              <div style={{ fontSize: '3rem', marginBottom: '10px' }}>✅</div>
+              <h3 style={{ fontFamily: 'var(--retro-font)', color: 'var(--neon-green)', fontSize: '1.4rem', marginBottom: '10px' }}>VERIFIED WITH OTP!</h3>
+              <p style={{ fontFamily: 'var(--modern-font)', color: '#aaa', fontSize: '0.95rem' }}>Waiting for host to start the game round...</p>
+            </motion.div>
+          ) : (
+            <form onSubmit={handleSubmitOtp} style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
+              <input 
+                type="text" 
+                maxLength={4}
+                value={otpInput}
+                onChange={(e) => {
+                  setOtpInput(e.target.value.replace(/[^0-9]/g, ''));
+                  setOtpError('');
+                }}
+                placeholder="0000"
+                className="retro-input"
+                style={{ textAlign: 'center', fontSize: '2.5rem', letterSpacing: '10px', width: '220px', padding: '15px', color: 'var(--cyan)', borderColor: 'var(--cyan)' }}
+                autoFocus
+              />
+              {otpError && (
+                <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} style={{ color: '#ef4444', fontFamily: 'var(--modern-font)', fontSize: '0.95rem', fontWeight: 600 }}>
+                  ⚠️ {otpError}
+                </motion.p>
+              )}
+              <button type="submit" className="retro-btn" style={{ width: '100%', padding: '20px', fontSize: '1.2rem', borderColor: 'var(--neon-green)', color: 'var(--neon-green)', background: 'rgba(34, 197, 94, 0.15)', cursor: 'pointer' }}>
+                VERIFY OTP ✋
+              </button>
+            </form>
+          )}
+
+          <div style={{ marginTop: '30px', color: '#666', fontFamily: 'var(--modern-font)', fontSize: '0.85rem' }}>
+            PLAYER: <span style={{ color: '#fff', fontWeight: 700 }}>{nickname}</span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   const renderGame = (title) => {
     if (isAdmin) {
-      // ADMIN LIVE ANALYTICS VIEW
       return (
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -458,19 +629,19 @@ function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="glass-card" style={{ padding: '30px', background: 'rgba(10,10,15,0.9)' }}>
                 <h3 style={{ color: 'var(--hot-pink)', fontFamily: 'var(--retro-font)', marginBottom: '15px' }}>TIME LEFT: {timeLeft}s</h3>
-                <h2 style={{ fontFamily: 'var(--modern-font)', fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>{gameState.currentQuestion ? gameState.currentQuestion.text : 'Waiting...'}</h2>
+                <h2 style={{ fontFamily: 'var(--modern-font)', fontSize: '1.5rem', fontWeight: 700, color: '#fff' }}>{safeCurrentQuestion ? safeCurrentQuestion.text : 'Waiting...'}</h2>
                 
-                {gameState.currentQuestion?.image && (
-                  <img src={gameState.currentQuestion.image} alt="Meme" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                {safeCurrentQuestion?.image && (
+                  <img src={safeCurrentQuestion.image} alt="Meme" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
                 )}
               </div>
 
               <div className="glass-card" style={{ padding: '30px', background: 'rgba(10,10,15,0.9)' }}>
                 <h3 style={{ color: 'var(--cyan)', fontFamily: 'var(--retro-font)', marginBottom: '20px', fontSize: '1rem' }}>LIVE ANSWERS</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  {gameState.currentQuestion?.options.map((opt, i) => {
-                    const count = liveAnalytics.optionCounts[i] || 0;
-                    const total = Object.keys(gameState.players).length || 1;
+                  {safeCurrentQuestion?.options?.map((opt, i) => {
+                    const count = safeAnalytics.optionCounts?.[i] || 0;
+                    const total = safePlayerCount || 1;
                     const percent = Math.min(100, Math.round((count / total) * 100));
                     
                     return (
@@ -491,15 +662,15 @@ function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="glass-card" style={{ padding: '30px', background: 'rgba(10,10,15,0.9)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontFamily: 'var(--modern-font)', color: '#aaa', fontSize: '1.2rem' }}>TOTAL RESPONSES</div>
-                <div style={{ fontFamily: 'var(--retro-font)', fontSize: '2rem', color: 'var(--neon-green)' }}>{liveAnalytics.totalAnswers} <span style={{ fontSize: '1rem', color: '#555' }}>/ {Object.keys(gameState.players).length}</span></div>
+                <div style={{ fontFamily: 'var(--retro-font)', fontSize: '2rem', color: 'var(--neon-green)' }}>{safeAnalytics.totalAnswers} <span style={{ fontSize: '1rem', color: '#555' }}>/ {safePlayerCount}</span></div>
               </div>
 
               <div className="glass-card" style={{ padding: '30px', background: 'rgba(10,10,15,0.9)', flex: 1 }}>
                 <h3 style={{ color: 'gold', fontFamily: 'var(--retro-font)', marginBottom: '20px', fontSize: '1rem' }}>FASTEST FINGERS</h3>
-                {liveAnalytics.fastestFingers.length === 0 ? (
+                {!safeAnalytics.fastestFingers || safeAnalytics.fastestFingers.length === 0 ? (
                   <p style={{ color: '#555', fontFamily: 'var(--modern-font)' }}>Waiting for correct answers...</p>
                 ) : (
-                  liveAnalytics.fastestFingers.map((f, i) => (
+                  safeAnalytics.fastestFingers.map((f, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                       <span style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, color: '#fff', fontSize: '1.2rem' }}>{i+1}. {f.nickname}</span>
                       <span style={{ fontFamily: 'var(--retro-font)', color: 'var(--neon-green)', fontSize: '0.9rem' }}>{f.timeTaken}s</span>
@@ -509,11 +680,12 @@ function App() {
               </div>
 
               <div className="glass-card" style={{ padding: '20px', background: 'rgba(0,0,0,0.8)', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button onClick={() => adminAction('NEXT_QUESTION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', fontSize: '0.9rem', padding: '10px 15px', width: '100%', marginBottom: '10px' }}>NEXT QUESTION ➔</button>
+                <button onClick={() => adminAction('NEXT_QUESTION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', fontSize: '0.9rem', padding: '10px 15px', width: '100%', marginBottom: '5px' }}>NEXT QUESTION ➔</button>
                 <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ fontSize: '0.8rem', padding: '10px 15px' }}>RESTART G1</button>
                 <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ fontSize: '0.8rem', padding: '10px 15px' }}>G2: COMEDY</button>
                 <button onClick={() => adminAction('START_GAME3')} className="retro-btn" style={{ fontSize: '0.8rem', padding: '10px 15px' }}>G3: MARATHON</button>
-                <button onClick={() => adminAction('SHOW_LEADERBOARD')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', fontSize: '0.8rem', padding: '10px 15px' }}>SHOW LEADERBOARD</button>
+                <button onClick={() => adminAction('SHOW_LEADERBOARD')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', fontSize: '0.8rem', padding: '10px 15px' }}>LEADERBOARD</button>
+                <button onClick={() => adminAction('STOP_GAME')} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', fontSize: '0.8rem', padding: '10px 15px', width: '100%', marginTop: '5px' }}>🛑 STOP & RESET GAME</button>
               </div>
             </div>
 
@@ -523,7 +695,7 @@ function App() {
     }
 
     // PLAYER VIEW
-    const myPlayer = gameState.players[socket.id];
+    const myPlayer = safeMyPlayer;
     return (
       <motion.div 
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -534,18 +706,18 @@ function App() {
            <p style={{ color: 'var(--neon-green)', fontSize: '1.2rem', fontFamily: 'var(--retro-font)' }}>SCORE: {myPlayer ? myPlayer.score : 0}</p>
         </div>
         
-        {gameState.currentQuestion ? (
+        {safeCurrentQuestion ? (
           <div className="glass-card" style={{ textAlign: 'center', maxWidth: '800px', width: '100%', padding: '40px', background: 'rgba(10,10,15,0.85)' }}>
             <h2 style={{ color: 'var(--hot-pink)', marginBottom: '20px', fontSize: '2rem', fontFamily: 'var(--retro-font)' }}>TIME: {timeLeft}</h2>
             
-            {gameState.currentQuestion.image && (
-              <img src={gameState.currentQuestion.image} alt="Meme Reference" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
+            {safeCurrentQuestion.image && (
+              <img src={safeCurrentQuestion.image} alt="Meme Reference" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
             )}
 
-            <h3 style={{ marginBottom: '40px', lineHeight: '1.6', fontSize: '1.8rem', fontWeight: 700, fontFamily: 'var(--modern-font)' }}>{gameState.currentQuestion.text}</h3>
+            <h3 style={{ marginBottom: '40px', lineHeight: '1.6', fontSize: '1.8rem', fontWeight: 700, fontFamily: 'var(--modern-font)' }}>{safeCurrentQuestion.text}</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-              {gameState.currentQuestion.options.map((opt, i) => {
+              {safeCurrentQuestion.options?.map((opt, i) => {
                 let btnStyle = { fontSize: '1.1rem', padding: '20px', fontFamily: 'var(--modern-font)', fontWeight: 700 };
                 if (answerResult) {
                   if (answerResult.correctOption === i) {
@@ -592,7 +764,7 @@ function App() {
     >
       <h1 className="gradient-text" style={{ fontFamily: 'var(--retro-font)', fontSize: '4rem', marginBottom: '50px', textShadow: '0 5px 15px rgba(0,0,0,0.8)' }}>FINAL STANDINGS</h1>
       <div className="glass-card" style={{ padding: '50px', width: '100%', maxWidth: '800px', background: 'rgba(10,10,15,0.8)' }}>
-        {gameState.leaderboard && gameState.leaderboard.map((p, i) => (
+        {gameState?.leaderboard && gameState.leaderboard.map((p, i) => (
           <motion.div 
             key={p.id} 
             initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
@@ -609,7 +781,17 @@ function App() {
         ))}
       </div>
       {isAdmin && (
-        <button onClick={() => { setUiView('LANDING'); adminAction('RESET_LOBBY'); }} className="retro-btn" style={{ marginTop: '50px', padding: '20px 40px', fontSize: '1.2rem' }}>BACK TO HOME</button>
+        <div style={{ display: 'flex', gap: '15px', marginTop: '40px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px 25px', fontSize: '1rem' }}>
+            START GAME 2 (COMEDY) 🎮
+          </button>
+          <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '15px 25px', fontSize: '1rem' }}>
+            NEW PRESENCE CHECK ✋
+          </button>
+          <button onClick={() => { setUiView('LANDING'); adminAction('RESET_LOBBY'); }} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', padding: '15px 25px', fontSize: '1rem' }}>
+            RESET LOBBY & EXIT 🛑
+          </button>
+        </div>
       )}
     </motion.div>
   );
@@ -617,7 +799,7 @@ function App() {
   return (
     <div className="crt">
       {!isRevealed && (
-        <Pokemon3DReveal onComplete={() => setIsRevealed(true)} />
+        <PokemonReveal onComplete={() => setIsRevealed(true)} />
       )}
 
       <video 
@@ -630,14 +812,18 @@ function App() {
         <source src="/Floating_island_with_letter_A_202608202102_gwr_video_mvp.mp4" type="video/mp4" />
       </video>
 
-      {gameState.phase === 'LOBBY' && uiView === 'LANDING' && renderLandingPage()}
-      {gameState.phase === 'LOBBY' && uiView === 'ENTER_GAME' && renderEnterGame()}
-      {gameState.phase === 'LOBBY' && uiView === 'ADMIN_LOGIN' && renderAdminLogin()}
-      {gameState.phase === 'LOBBY' && uiView === 'JOINED' && renderJoinedLobby()}
-      
-      {['GAME1', 'GAME2', 'GAME3'].includes(gameState.phase) && renderGame('ARENA')}
-      
-      {gameState.phase === 'LEADERBOARD' && renderLeaderboard()}
+      {uiView === 'LANDING' && renderLandingPage()}
+      {uiView === 'ENTER_GAME' && renderEnterGame()}
+      {uiView === 'ADMIN_LOGIN' && renderAdminLogin()}
+
+      {uiView === 'JOINED' && (
+        <>
+          {(gameState?.phase === 'LOBBY' || !gameState?.phase) && renderJoinedLobby()}
+          {gameState?.phase === 'VERIFICATION' && renderVerificationPage()}
+          {['GAME1', 'GAME2', 'GAME3'].includes(gameState?.phase) && renderGame('ARENA')}
+          {gameState?.phase === 'LEADERBOARD' && renderLeaderboard()}
+        </>
+      )}
 
       <button onClick={toggleMusic} style={{ position: 'fixed', bottom: '20px', left: '20px', zIndex: 1000, background: 'rgba(0,0,0,0.5)', border: '1px solid var(--cyan)', color: 'var(--cyan)', padding: '10px 20px', borderRadius: '50px', cursor: 'pointer', backdropFilter: 'blur(10px)', fontFamily: 'var(--modern-font)', fontSize: '0.9rem', fontWeight: 700 }}>
         {isMusicPlaying ? '🔊 MUSIC ON' : '🔈 MUSIC OFF'}
