@@ -5,8 +5,15 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const cors = require('cors');
 
+const corsOptions = {
+  origin: (origin, callback) => callback(null, true), // Reflect request origin dynamically (Vercel, Render, Localhost, etc.)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
 const app = express();
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -46,7 +53,11 @@ app.post('/api/upload', (req, res) => {
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: {
+    origin: (origin, callback) => callback(null, true),
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true
+  },
   pingTimeout: 60000,
   pingInterval: 25000,
   maxHttpBufferSize: 15e6, // 15MB payload limit

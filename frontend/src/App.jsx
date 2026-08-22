@@ -5,7 +5,14 @@ import PokemonReveal from './PokemonReveal';
 import './index.css';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-const socket = io(BACKEND_URL);
+const socket = io(BACKEND_URL, {
+  transports: ['websocket', 'polling'],
+  withCredentials: true,
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000
+});
 
 const getMediaUrl = (url) => {
   if (!url) return '';
