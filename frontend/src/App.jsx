@@ -7,6 +7,20 @@ import './index.css';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 const socket = io(BACKEND_URL);
 
+const getMediaUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+  const cleanBackend = BACKEND_URL.replace(/\/$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${cleanBackend}${cleanPath}`;
+};
+
+const isVideoMedia = (url) => {
+  if (!url) return false;
+  if (url.startsWith('data:video/')) return true;
+  return /\.(mp4|webm|ogg|mov|mkv|avi)(\?.*)?$/i.test(url);
+};
+
 // ── Timer Arc Component ─────────────────────────────────────────────────────
 const RADIUS = 38;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -257,7 +271,8 @@ function App() {
       reader.onload = async (evt) => {
         const base64 = evt.target.result;
         try {
-          const res = await fetch(`${BACKEND_URL}/api/upload`, {
+          const cleanBackend = BACKEND_URL.replace(/\/$/, '');
+          const res = await fetch(`${cleanBackend}/api/upload`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fileData: base64, fileName: file.name })
@@ -266,9 +281,11 @@ function App() {
           if (data.success) {
             setEditingQ(prev => ({ ...prev, image: data.url }));
           } else {
+            console.error('Upload failed on server:', data?.error);
             setEditingQ(prev => ({ ...prev, image: base64 }));
           }
         } catch (err) {
+          console.error('Upload network error:', err);
           setEditingQ(prev => ({ ...prev, image: base64 }));
         } finally {
           setUploadingMedia(false);
@@ -371,10 +388,10 @@ function App() {
                   {editingQ.image && (
                     <div style={{ marginTop: '12px', background: 'rgba(0,0,0,0.4)', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
                       <p style={{ color: '#888', fontSize: '0.7rem', marginBottom: '6px' }}>LIVE MEDIA PREVIEW:</p>
-                      {editingQ.image.endsWith('.mp4') || editingQ.image.endsWith('.webm') ? (
-                        <video src={editingQ.image} autoPlay loop muted playsInline style={{ maxHeight: '140px', maxWidth: '100%', borderRadius: '8px' }} />
+                      {isVideoMedia(editingQ.image) ? (
+                        <video src={getMediaUrl(editingQ.image)} autoPlay loop muted playsInline style={{ maxHeight: '140px', maxWidth: '100%', borderRadius: '8px' }} />
                       ) : (
-                        <img src={editingQ.image} alt="Preview" style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px' }} />
+                        <img src={getMediaUrl(editingQ.image)} alt="Preview" style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px' }} />
                       )}
                     </div>
                   )}
@@ -436,10 +453,10 @@ function App() {
                       
                       {q.image && (
                         <div style={{ width: '70px', height: '55px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {q.image.endsWith('.mp4') || q.image.endsWith('.webm') ? (
-                            <video src={q.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          {isVideoMedia(q.image) ? (
+                            <video src={getMediaUrl(q.image)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <img src={q.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={getMediaUrl(q.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           )}
                         </div>
                       )}
@@ -940,10 +957,10 @@ function App() {
                 <h2 style={{ fontFamily: 'var(--modern-font)', fontSize: '1.4rem', fontWeight: 700, color: '#fff', lineHeight: 1.5 }}>{safeCurrentQuestion ? safeCurrentQuestion.text : 'Waiting for next question...'}</h2>
                 
                 {safeCurrentQuestion?.image && (
-                  safeCurrentQuestion.image.endsWith('.mp4') || safeCurrentQuestion.image.endsWith('.webm') ? (
-                    <video src={safeCurrentQuestion.image} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                  isVideoMedia(safeCurrentQuestion.image) ? (
+                    <video src={getMediaUrl(safeCurrentQuestion.image)} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
                   ) : (
-                    <img src={safeCurrentQuestion.image} alt="Meme" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                    <img src={getMediaUrl(safeCurrentQuestion.image)} alt="Meme" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
                   )
                 )}
               </div>
@@ -1042,10 +1059,10 @@ function App() {
             <TimerArc timeLeft={timeLeft} maxTime={maxTime} />
 
             {safeCurrentQuestion.image && (
-              safeCurrentQuestion.image.endsWith('.mp4') || safeCurrentQuestion.image.endsWith('.webm') ? (
-                <video src={safeCurrentQuestion.image} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
+              isVideoMedia(safeCurrentQuestion.image) ? (
+                <video src={getMediaUrl(safeCurrentQuestion.image)} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
               ) : (
-                <img src={safeCurrentQuestion.image} alt="Meme Reference" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
+                <img src={getMediaUrl(safeCurrentQuestion.image)} alt="Meme Reference" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
               )
             )}
 

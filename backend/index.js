@@ -34,7 +34,7 @@ app.post('/api/upload', (req, res) => {
     const { fileData, fileName } = req.body;
     if (!fileData) return res.status(400).json({ error: 'No file data provided' });
 
-    const base64Data = fileData.replace(/^data:(image|video)\/\w+;base64,/, '');
+    const base64Data = fileData.includes(';base64,') ? fileData.split(';base64,').pop() : fileData;
     const safeName = `${Date.now()}_${(fileName || 'media').replace(/[^a-zA-Z0-9._-]/g, '')}`;
     const filePath = path.join(uploadsDir, safeName);
 
@@ -52,7 +52,7 @@ const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
   pingTimeout: 60000,
   pingInterval: 25000,
-  maxHttpBufferSize: 1e6, // 1MB payload limit
+  maxHttpBufferSize: 15e6, // 15MB payload limit
   transports: ['websocket', 'polling']
 });
 
