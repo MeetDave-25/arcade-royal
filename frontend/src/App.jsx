@@ -657,19 +657,19 @@ function App() {
       className="container"
       style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}
     >
-      <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '50px', position: 'relative' }}>
-        <button onClick={() => setUiView('LANDING')} style={{ position: 'absolute', top: '20px', left: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', fontFamily: 'var(--body-font)', fontSize: '0.9rem' }}>
-          ← Back
+      <div className="glass-card" style={{ width: '100%', maxWidth: '460px', padding: '60px 40px 45px 40px', position: 'relative', background: 'rgba(10,10,18,0.92)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '24px', boxShadow: '0 25px 60px rgba(0,0,0,0.85)' }}>
+        <button onClick={() => setUiView('LANDING')} className="nav-back-btn">
+          ← BACK
         </button>
 
-        <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-          <div className="glass-badge" style={{ marginBottom: '15px' }}>PLAYER PORTAL</div>
-          <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '2rem', color: '#fff' }}>ENTER THE ARENA</h2>
+        <div style={{ textAlign: 'center', marginBottom: '35px', marginTop: '15px' }}>
+          <div className="glass-badge" style={{ marginBottom: '16px', color: 'var(--cyan)' }}>✦ PLAYER PORTAL ✦</div>
+          <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', color: '#fff', letterSpacing: '0.08em', lineHeight: 1.2 }}>ENTER THE ARENA</h2>
         </div>
 
-        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           <div>
-            <label style={{ display: 'block', fontFamily: 'var(--body-font)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.1em', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase' }}>
+            <label style={{ display: 'block', fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.15em', color: '#9ca3af', marginBottom: '10px', textTransform: 'uppercase' }}>
               PLAYER NICKNAME
             </label>
             <input 
@@ -678,13 +678,12 @@ function App() {
               onChange={(e) => setNickname(e.target.value)}
               placeholder="e.g. CYBER_PUNK_99" 
               required
-              style={{ width: '100%', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', color: '#fff', fontFamily: 'var(--body-font)', fontSize: '1rem', outline: 'none' }}
+              className="portal-input"
             />
           </div>
 
-          <button type="submit" className="magnetic-btn-primary" style={{ width: '100%', padding: '18px' }}>
-            <div className="bg-hover" />
-            <span>JOIN GAME</span>
+          <button type="submit" className="auth-btn-primary">
+            JOIN GAME
           </button>
         </form>
       </div>
@@ -699,19 +698,19 @@ function App() {
       className="container"
       style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}
     >
-      <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '50px', position: 'relative' }}>
-        <button onClick={() => setUiView('LANDING')} style={{ position: 'absolute', top: '20px', left: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', fontFamily: 'var(--body-font)', fontSize: '0.9rem' }}>
-          ← Back
+      <div className="glass-card" style={{ width: '100%', maxWidth: '460px', padding: '60px 40px 45px 40px', position: 'relative', background: 'rgba(10,10,18,0.92)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '24px', boxShadow: '0 25px 60px rgba(0,0,0,0.85)' }}>
+        <button onClick={() => setUiView('LANDING')} className="nav-back-btn">
+          ← BACK
         </button>
 
-        <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-          <div className="glass-badge" style={{ marginBottom: '15px', color: 'var(--hot-pink)' }}>ADMIN AUTHENTICATION</div>
-          <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '2rem', color: '#fff' }}>HOST ACCESS</h2>
+        <div style={{ textAlign: 'center', marginBottom: '35px', marginTop: '15px' }}>
+          <div className="glass-badge" style={{ marginBottom: '16px', color: 'var(--hot-pink)' }}>✦ ADMIN AUTHENTICATION ✦</div>
+          <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', color: '#fff', letterSpacing: '0.08em', lineHeight: 1.2 }}>HOST ACCESS</h2>
         </div>
 
-        <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
           <div>
-            <label style={{ display: 'block', fontFamily: 'var(--body-font)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.1em', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase' }}>
+            <label style={{ display: 'block', fontFamily: 'var(--body-font)', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.15em', color: '#9ca3af', marginBottom: '10px', textTransform: 'uppercase' }}>
               HOST PASSWORD
             </label>
             <input 
@@ -720,18 +719,18 @@ function App() {
               onChange={(e) => setAdminPassword(e.target.value)}
               placeholder="Enter host password..." 
               required
-              style={{ width: '100%', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', color: '#fff', fontFamily: 'var(--body-font)', fontSize: '1rem', outline: 'none' }}
+              className="portal-input"
             />
           </div>
 
           {adminLoginError && (
-            <p style={{ color: '#ef4444', fontFamily: 'var(--body-font)', fontSize: '0.9rem', textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', fontFamily: 'var(--body-font)', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
               {adminLoginError}
             </p>
           )}
 
-          <button type="submit" className="glass-btn-secondary" style={{ width: '100%', padding: '18px' }}>
-            <span>AUTHENTICATE HOST</span>
+          <button type="submit" className="auth-btn-primary">
+            AUTHENTICATE HOST
           </button>
         </form>
       </div>
