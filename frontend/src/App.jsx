@@ -99,7 +99,9 @@ function App() {
   const safePlayers = gameState?.players || {};
   const safePlayerList = Object.values(safePlayers);
   const safePlayerCount = safePlayerList.length;
-  const safeMyPlayer = (socket?.id && safePlayers[socket.id]) ? safePlayers[socket.id] : null;
+  const safeMyPlayer = (socket?.id && safePlayers[socket.id]) 
+    ? safePlayers[socket.id] 
+    : Object.values(safePlayers).find(p => p && p.nickname && nickname && p.nickname.toLowerCase() === nickname.trim().toLowerCase()) || null;
   const safeCurrentQuestion = gameState?.currentQuestion;
   const safeAnalytics = liveAnalytics || { totalAnswers: 0, optionCounts: [0, 0, 0, 0], fastestFingers: [], correctOption: null };
 
@@ -174,6 +176,18 @@ function App() {
       setAnswerResult(result);
     });
 
+    socket.on('answerAck', (ack) => {
+      if (ack && ack.success && ack.score !== undefined) {
+        setScoreAnimKey(k => k + 1);
+      }
+    });
+
+    socket.on('connect', () => {
+      if (nickname && nickname.trim()) {
+        socket.emit('joinGame', nickname.trim());
+      }
+    });
+
     socket.on('otpResult', (res) => {
       if (res.success) {
         setOtpError('');
@@ -189,9 +203,11 @@ function App() {
       socket.off('question');
       socket.off('timer');
       socket.off('answerResult');
+      socket.off('answerAck');
+      socket.off('connect');
       socket.off('otpResult');
     };
-  }, []);
+  }, [nickname]);
 
   // Animate score when it changes
   useEffect(() => {
@@ -628,7 +644,7 @@ function App() {
             style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}
           >
             <motion.img 
-              src="/poster.jpg" 
+              src="/psoter1.png" 
               alt="Arcade Royale Official Event Poster" 
               style={{ width: '100%', maxWidth: '480px', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}
               whileHover={{ scale: 1.02, filter: 'brightness(1.1)' }}
@@ -958,11 +974,11 @@ function App() {
             </div>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
               <button 
-                onClick={() => setUiView('STANDALONE_LEADERBOARD')} 
+                onClick={() => window.open('/?mode=leaderboard', '_blank')} 
                 className="retro-btn btn-gold" 
                 style={{ fontSize: '0.75rem', padding: '8px 16px' }}
               >
-                📺 OPEN TV LEADERBOARD
+                📺 OPEN TV LEADERBOARD ↗
               </button>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ color: '#aaa', fontSize: '0.75rem', fontFamily: 'var(--modern-font)' }}>TOTAL ANSWERS</p>
@@ -1219,8 +1235,12 @@ function App() {
               <p style={{ color: '#aaa', fontSize: '0.75rem', fontFamily: 'var(--modern-font)' }}>TOTAL PLAYERS</p>
               <p style={{ color: 'var(--cyan)', fontFamily: 'var(--retro-font)', fontSize: '1.6rem' }}>{safePlayerCount}</p>
             </div>
-            <button onClick={() => setUiView('LANDING')} className="nav-back-btn" style={{ position: 'relative', top: 'auto', left: 'auto' }}>
-              ← EXIT LEADERBOARD
+            <button 
+              onClick={() => setUiView(isAdmin || safeMyPlayer ? 'JOINED' : 'LANDING')} 
+              className="nav-back-btn" 
+              style={{ position: 'relative', top: 'auto', left: 'auto' }}
+            >
+              ← {isAdmin ? 'BACK TO HOST DASHBOARD' : safeMyPlayer ? 'BACK TO GAME' : 'EXIT LEADERBOARD'}
             </button>
           </div>
         </div>
