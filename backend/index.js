@@ -15,12 +15,16 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date() });
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), playersCount: Object.keys(gameState.players).length, timestamp: new Date() });
 });
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e6, // 1MB payload limit
+  transports: ['websocket', 'polling']
 });
 
 const connectionString = process.env.DATABASE_URL;
@@ -69,6 +73,7 @@ let currentAnalytics = {
 let timerInterval;
 let questionStartTime = 0;
 let currentQuestionIndex = 0;
+let analyticsBroadcastTimeout = null;
 
 const questionsG1 = [
   { id: 1, text: '😂 Q1. This iconic reaction/meme is from which movie?', image: '/meme/Hera-Pheri-Memes-8.jpg', options: ['Hera Pheri', 'Welcome', 'Dhamaal', 'Bhool Bhulaiyaa'], answer: 0 },
@@ -101,15 +106,37 @@ const questionsG3 = [
   { id: 22, text: 'MARATHON: Which of these is a classic 8-bit game?', options: ['Halo', 'Pac-Man', 'Fortnite', 'Minecraft'], answer: 1 }
 ];
 
-function saveLeaderboardToDB() {
-  const leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
-  leaderboard.forEach(p => {
-    pool.query('INSERT INTO players (nickname, score) VALUES ($1, $2)', [p.nickname, p.score]).catch(console.error);
+// HIGH CONCURRENCY DB FIX: Single multi-row batch insert instead of N individual queries
+async function saveLeaderboardToDB() {
+  const leaderboard = Object.values(gameState.players)
+    .filter(p => p && p.nickname)
+    .sort((a, b) => b.score - a.score);
+
+  if (leaderboard.length === 0) return;
+
+  const values = [];
+  const valueStrings = leaderboard.map((p, idx) => {
+    values.push(p.nickname, p.score);
+    return `($${idx * 2 + 1}, $${idx * 2 + 2})`;
   });
+
+  const queryText = `INSERT INTO players (nickname, score) VALUES ${valueStrings.join(', ')}`;
+  try {
+    await pool.query(queryText, values);
+    console.log(`⚡ Batch saved ${leaderboard.length} players to database successfully in 1 query!`);
+  } catch (err) {
+    console.error('Error batch saving leaderboard to DB:', err);
+  }
 }
 
-function broadcastAnalytics() {
-  io.emit('liveAnalytics', currentAnalytics);
+// Throttled Analytics Broadcast to prevent socket flooding under 150+ rapid clicks
+function broadcastAnalyticsThrottled() {
+  if (!analyticsBroadcastTimeout) {
+    analyticsBroadcastTimeout = setTimeout(() => {
+      io.emit('liveAnalytics', currentAnalytics);
+      analyticsBroadcastTimeout = null;
+    }, 250);
+  }
 }
 
 function startTimer(seconds, onFinish) {
@@ -144,8 +171,7 @@ function sendQuestion(q) {
     fastestFingers: [],
     correctOption: q.answer
   };
-  broadcastAnalytics();
-
+  io.emit('liveAnalytics', currentAnalytics);
   io.emit('question', gameState.currentQuestion);
   
   Object.values(gameState.players).forEach(p => p.answered = false);
@@ -170,13 +196,28 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinGame', (nickname) => {
+    const cleanNick = (nickname || '').trim();
+    if (!cleanNick) return;
+
     if (!gameState.roomOtp) {
       gameState.roomOtp = generateOtp();
     }
     if (gameState.phase === 'LOBBY') {
       gameState.phase = 'VERIFICATION';
     }
-    gameState.players[socket.id] = { id: socket.id, nickname, score: 0, answered: false, verified: false };
+
+    // Reconnection handling: check if player with same nickname already joined
+    let existingPlayer = Object.values(gameState.players).find(p => p.nickname.toLowerCase() === cleanNick.toLowerCase());
+
+    if (existingPlayer) {
+      delete gameState.players[existingPlayer.id];
+      existingPlayer.id = socket.id;
+      existingPlayer.online = true;
+      gameState.players[socket.id] = existingPlayer;
+    } else {
+      gameState.players[socket.id] = { id: socket.id, nickname: cleanNick, score: 0, answered: false, verified: false, online: true };
+    }
+
     io.emit('gameStateUpdate', gameState);
   });
 
@@ -208,7 +249,9 @@ io.on('connection', (socket) => {
     const q = currentQList.find(x => x.id === gameState.currentQuestion.id);
     if (q) {
       currentAnalytics.totalAnswers++;
-      currentAnalytics.optionCounts[optionIndex]++;
+      if (currentAnalytics.optionCounts[optionIndex] !== undefined) {
+        currentAnalytics.optionCounts[optionIndex]++;
+      }
       
       const timeTaken = ((Date.now() - questionStartTime) / 1000).toFixed(2);
 
@@ -222,8 +265,9 @@ io.on('connection', (socket) => {
         }
       }
       
-      io.emit('gameStateUpdate', gameState);
-      broadcastAnalytics();
+      // Send instant ACK to submitting player, update analytics via throttle
+      socket.emit('answerAck', { success: true, score: player.score });
+      broadcastAnalyticsThrottled();
     }
   });
 
@@ -260,7 +304,7 @@ io.on('connection', (socket) => {
         p.verified = false;
       });
       io.emit('gameStateUpdate', gameState);
-      broadcastAnalytics();
+      io.emit('liveAnalytics', currentAnalytics);
     } else if (action === 'START_GAME1') {
       clearInterval(timerInterval);
       gameState.phase = 'GAME1';
@@ -280,7 +324,6 @@ io.on('connection', (socket) => {
         gameState.phase = 'LEADERBOARD';
         gameState.currentQuestion = null;
         gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
-        // FIX: Save to DB when auto-transitioning to LEADERBOARD
         saveLeaderboardToDB();
         io.emit('gameStateUpdate', gameState);
       }
@@ -312,7 +355,14 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (gameState.players[socket.id]) {
-      delete gameState.players[socket.id];
+      // Mark offline, grace period of 30 seconds before removal to preserve score on temporary phone disconnect
+      gameState.players[socket.id].online = false;
+      setTimeout(() => {
+        if (gameState.players[socket.id] && !gameState.players[socket.id].online) {
+          delete gameState.players[socket.id];
+          io.emit('gameStateUpdate', gameState);
+        }
+      }, 30000);
       io.emit('gameStateUpdate', gameState);
     }
   });
