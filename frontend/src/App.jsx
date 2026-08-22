@@ -752,10 +752,10 @@ function App() {
             <p style={{ color: '#9ca3af', fontFamily: 'var(--body-font)', marginBottom: '30px' }}>Players in lobby: <strong style={{ color: 'var(--neon-green)' }}>{safePlayerCount}</strong></p>
             
             <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)' }}>
+              <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn btn-cyan">
                 START PRESENCE CHECK ✋
               </button>
-              <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)' }}>
+              <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn btn-green">
                 ✏️ EDIT & MANAGE QUESTIONS
               </button>
             </div>
@@ -827,19 +827,19 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ flex: 1, minWidth: '160px', borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '14px', fontSize: '0.85rem' }}>
+              <button onClick={() => adminAction('START_GAME1')} className="retro-btn btn-pink" style={{ flex: 1, minWidth: '160px' }}>
                 🎮 START GAME 1 (MEME WAR)
               </button>
-              <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ flex: 1, minWidth: '160px', borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '14px', fontSize: '0.85rem' }}>
+              <button onClick={() => adminAction('START_GAME2')} className="retro-btn btn-cyan" style={{ flex: 1, minWidth: '160px' }}>
                 🎵 START GAME 2 (MOVIE & SONG)
               </button>
-              <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '14px', fontSize: '0.8rem' }}>
+              <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn btn-green">
                 ✏️ EDIT QUESTIONS
               </button>
-              <button onClick={() => adminAction('KICK_UNVERIFIED')} className="retro-btn" style={{ borderColor: '#eab308', color: '#eab308', padding: '14px', fontSize: '0.8rem' }}>
+              <button onClick={() => adminAction('KICK_UNVERIFIED')} className="retro-btn btn-yellow">
                 KICK UNVERIFIED
               </button>
-              <button onClick={() => adminAction('RESET_LOBBY')} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', padding: '14px', fontSize: '0.8rem' }}>
+              <button onClick={() => adminAction('RESET_LOBBY')} className="retro-btn btn-red">
                 RESET LOBBY
               </button>
             </div>
@@ -993,12 +993,12 @@ function App() {
               </div>
 
               <div className="glass-card" style={{ padding: '20px', background: 'rgba(0,0,0,0.8)', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button onClick={() => adminAction('NEXT_QUESTION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', fontSize: '0.9rem', padding: '10px 15px', width: '100%', marginBottom: '5px' }}>NEXT QUESTION ➔</button>
-                <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>↺ GAME 1</button>
-                <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>🎵 GAME 2</button>
-                <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', fontSize: '0.75rem', padding: '8px 12px' }}>✏️ EDIT QUESTIONS</button>
-                <button onClick={() => adminAction('SHOW_LEADERBOARD')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', fontSize: '0.75rem', padding: '8px 12px' }}>🏆 LEADERBOARD</button>
-                <button onClick={() => adminAction('STOP_GAME')} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', fontSize: '0.75rem', padding: '8px 12px', width: '100%', marginTop: '5px' }}>🛑 STOP & RESET</button>
+                <button onClick={() => adminAction('NEXT_QUESTION')} className="retro-btn btn-cyan" style={{ width: '100%', marginBottom: '5px' }}>NEXT QUESTION ➔</button>
+                <button onClick={() => adminAction('START_GAME1')} className="retro-btn btn-pink">↺ GAME 1</button>
+                <button onClick={() => adminAction('START_GAME2')} className="retro-btn btn-cyan">🎵 GAME 2</button>
+                <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn btn-green">✏️ EDIT QUESTIONS</button>
+                <button onClick={() => adminAction('SHOW_LEADERBOARD')} className="retro-btn btn-pink">🏆 LEADERBOARD</button>
+                <button onClick={() => adminAction('STOP_GAME')} className="retro-btn btn-red" style={{ width: '100%', marginTop: '5px' }}>🛑 STOP & RESET</button>
               </div>
             </div>
 
@@ -1132,19 +1132,19 @@ function App() {
 
         {isAdmin && (
           <div style={{ display: 'flex', gap: '15px', marginTop: '35px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '15px 25px', fontSize: '0.9rem' }}>
+            <button onClick={() => adminAction('START_GAME1')} className="retro-btn btn-pink">
               START GAME 1 (MEME WAR) 🧠
             </button>
-            <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px 25px', fontSize: '0.9rem' }}>
+            <button onClick={() => adminAction('START_GAME2')} className="retro-btn btn-cyan">
               START GAME 2 (MOVIE & SONG) 🎵
             </button>
-            <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '15px 25px', fontSize: '0.9rem' }}>
+            <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn btn-green">
               ✏️ EDIT & MANAGE QUESTIONS
             </button>
-            <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'gold', color: 'gold', padding: '15px 25px', fontSize: '0.9rem' }}>
+            <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn btn-gold">
               NEW PRESENCE CHECK ✋
             </button>
-            <button onClick={() => { setUiView('LANDING'); adminAction('RESET_LOBBY'); }} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', padding: '15px 25px', fontSize: '0.9rem' }}>
+            <button onClick={() => { setUiView('LANDING'); adminAction('RESET_LOBBY'); }} className="retro-btn btn-red">
               RESET & EXIT 🛑
             </button>
           </div>

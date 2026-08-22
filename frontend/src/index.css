@@ -87,30 +87,30 @@ body {
 
 /* Button Styling (Modern + Retro Glass) */
 .retro-btn {
-  font-family: var(--body-font);
-  font-weight: 700;
+  font-family: var(--modern-font) !important;
+  font-weight: 700 !important;
   background: rgba(10, 10, 18, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: var(--cyan);
   border: 1.5px solid currentColor;
   border-radius: 9999px;
-  padding: 12px 24px;
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
+  padding: 12px 22px;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
   cursor: pointer;
   text-transform: uppercase;
   position: relative;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
+  white-space: nowrap;
 }
 
 .retro-btn:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-  border-color: #ffffff !important;
-  box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+  background: currentColor !important;
+  color: #000000 !important;
+  box-shadow: 0 0 25px currentColor;
   transform: translateY(-2px);
 }
 
@@ -118,26 +118,67 @@ body {
   transform: translateY(0);
 }
 
-.option-btn {
-  font-family: var(--body-font) !important;
-  font-size: 0.95rem !important;
-  font-weight: 600 !important;
-  padding: 16px 20px !important;
-  border-radius: 14px !important;
-  background: rgba(15, 15, 25, 0.85) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-  text-align: left !important;
-  transition: all 0.2s ease !important;
+/* Color Modifier Classes for retro-btn */
+.btn-cyan {
+  color: var(--cyan) !important;
+  border-color: var(--cyan) !important;
+  background: rgba(34, 211, 238, 0.1) !important;
+}
+.btn-cyan:hover {
+  background: var(--cyan) !important;
+  color: #000000 !important;
 }
 
-.option-btn:hover {
-  background: rgba(34, 211, 238, 0.18) !important;
-  border-color: var(--cyan) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3) !important;
-  transform: translateY(-2px) !important;
+.btn-pink {
+  color: var(--hot-pink) !important;
+  border-color: var(--hot-pink) !important;
+  background: rgba(255, 0, 255, 0.1) !important;
 }
+.btn-pink:hover {
+  background: var(--hot-pink) !important;
+  color: #000000 !important;
+}
+
+.btn-green {
+  color: var(--neon-green) !important;
+  border-color: var(--neon-green) !important;
+  background: rgba(57, 255, 20, 0.1) !important;
+}
+.btn-green:hover {
+  background: var(--neon-green) !important;
+  color: #000000 !important;
+}
+
+.btn-gold {
+  color: gold !important;
+  border-color: gold !important;
+  background: rgba(255, 215, 0, 0.1) !important;
+}
+.btn-gold:hover {
+  background: gold !important;
+  color: #000000 !important;
+}
+
+.btn-red {
+  color: #ef4444 !important;
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+.btn-red:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.btn-yellow {
+  color: #eab308 !important;
+  border-color: #eab308 !important;
+  background: rgba(234, 179, 8, 0.1) !important;
+}
+.btn-yellow:hover {
+  background: #eab308 !important;
+  color: #000000 !important;
+}
+
 
 
 .retro-input {
