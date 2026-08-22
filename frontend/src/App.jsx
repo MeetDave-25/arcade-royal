@@ -691,7 +691,11 @@ function App() {
                 <h2 style={{ fontFamily: 'var(--modern-font)', fontSize: '1.4rem', fontWeight: 700, color: '#fff', lineHeight: 1.5 }}>{safeCurrentQuestion ? safeCurrentQuestion.text : 'Waiting for next question...'}</h2>
                 
                 {safeCurrentQuestion?.image && (
-                  <img src={safeCurrentQuestion.image} alt="Meme" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                  safeCurrentQuestion.image.endsWith('.mp4') || safeCurrentQuestion.image.endsWith('.webm') ? (
+                    <video src={safeCurrentQuestion.image} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                  ) : (
+                    <img src={safeCurrentQuestion.image} alt="Meme" style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', marginTop: '20px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.2)' }} />
+                  )
                 )}
               </div>
 
@@ -788,7 +792,11 @@ function App() {
             <TimerArc timeLeft={timeLeft} maxTime={maxTime} />
 
             {safeCurrentQuestion.image && (
-              <img src={safeCurrentQuestion.image} alt="Meme Reference" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
+              safeCurrentQuestion.image.endsWith('.mp4') || safeCurrentQuestion.image.endsWith('.webm') ? (
+                <video src={safeCurrentQuestion.image} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
+              ) : (
+                <img src={safeCurrentQuestion.image} alt="Meme Reference" style={{ width: '100%', maxHeight: '250px', objectFit: 'contain', marginBottom: '20px', borderRadius: '15px', border: '2px solid rgba(255,255,255,0.1)' }} />
+              )
             )}
 
             <h3 style={{ marginBottom: '30px', lineHeight: '1.6', fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--modern-font)', color: '#fff' }}>{safeCurrentQuestion.text}</h3>

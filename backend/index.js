@@ -79,7 +79,7 @@ let analyticsBroadcastTimeout = null;
 const questionsG1 = [
   { id: 1, text: '😂 Q1. This iconic reaction/meme is from which movie?', image: '/meme/Hera-Pheri-Memes-8.jpg', options: ['Hera Pheri', 'Welcome', 'Dhamaal', 'Bhool Bhulaiyaa'], answer: 0 },
   { id: 2, text: '🤣 Q2. Which Bollywood movie is behind this iconic chaotic meme energy?', image: '/meme/2.jpg', options: ['Welcome', 'Golmaal', 'Phir Hera Pheri', 'Bhool Bhulaiyaa'], answer: 0 },
-  { id: 3, text: '😂 Q3. When your friend says "Bro, trust me" and you immediately know you\'re finished. Which movie gives this meme energy?', options: ['Hera Pheri', 'Andaz Apna Apna', 'Golmaal', 'Munna Bhai M.B.B.S.'], answer: 0 },
+  { id: 3, text: '🐱 Q3. What is the cat doing?', image: '/meme/3.mp4', options: ['Trying to hack NASA 🧑💻', 'Doing homework 📚', 'Fighting with the laptop 💻', 'Scooba dance 💃'], answer: 3 },
   { id: 4, text: '😂 Q4. 💀 When the plan was perfect… until your friend joined. Which movie?', options: ['Dhamaal', 'Welcome', 'Golmaal', 'Housefull'], answer: 0 },
   { id: 5, text: '😂 Q5. 🧠 When you studied everything except what came in the exam. Which movie?', options: ['3 Idiots', 'Chhichhore', 'Munna Bhai M.B.B.S.', 'Taare Zameen Par'], answer: 0 },
   { id: 6, text: '😂 Q6. 💸 "Broke but still planning a luxury life." Which movie?', options: ['Phir Hera Pheri', 'Welcome', 'Dhamaal', 'Fukrey'], answer: 0 },
