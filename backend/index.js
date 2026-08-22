@@ -4,10 +4,20 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Serve uploads folder statically if present
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // Health Check for Render / Uptime Monitoring
 app.get('/', (req, res) => {
@@ -16,6 +26,25 @@ app.get('/', (req, res) => {
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime(), playersCount: Object.keys(gameState.players).length, timestamp: new Date() });
+});
+
+// API endpoint to upload image/video for questions
+app.post('/api/upload', (req, res) => {
+  try {
+    const { fileData, fileName } = req.body;
+    if (!fileData) return res.status(400).json({ error: 'No file data provided' });
+
+    const base64Data = fileData.replace(/^data:(image|video)\/\w+;base64,/, '');
+    const safeName = `${Date.now()}_${(fileName || 'media').replace(/[^a-zA-Z0-9._-]/g, '')}`;
+    const filePath = path.join(uploadsDir, safeName);
+
+    fs.writeFileSync(filePath, base64Data, 'base64');
+    const mediaUrl = `/uploads/${safeName}`;
+    res.json({ success: true, url: mediaUrl });
+  } catch (err) {
+    console.error('Media upload error:', err);
+    res.status(500).json({ error: 'Failed to upload media' });
+  }
 });
 
 const server = http.createServer(app);
@@ -35,6 +64,73 @@ const pool = new Pool({
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
+let questionsG1 = [
+  { id: 1, text: '😂 Q1. This iconic reaction/meme is from which movie?', image: '/meme/Hera-Pheri-Memes-8.jpg', options: ['Hera Pheri', 'Welcome', 'Dhamaal', 'Bhool Bhulaiyaa'], answer: 0 },
+  { id: 2, text: '🤣 Q2. Which Bollywood movie is behind this iconic chaotic meme energy?', image: '/meme/2.jpg', options: ['Welcome', 'Golmaal', 'Phir Hera Pheri', 'Bhool Bhulaiyaa'], answer: 0 },
+  { id: 3, text: '🐱 Q3. What is the cat doing?', image: '/meme/3.mp4', options: ['Trying to hack NASA 🧑💻', 'Doing homework 📚', 'Fighting with the laptop 💻', 'Scooba dance 💃'], answer: 3 },
+  { id: 4, text: '😂 Q4. 💀 When the plan was perfect… until your friend joined. Which movie?', options: ['Dhamaal', 'Welcome', 'Golmaal', 'Housefull'], answer: 0 },
+  { id: 5, text: '😂 Q5. 🧠 When you studied everything except what came in the exam. Which movie?', options: ['3 Idiots', 'Chhichhore', 'Munna Bhai M.B.B.S.', 'Taare Zameen Par'], answer: 0 },
+  { id: 6, text: '😂 Q6. 💸 "Broke but still planning a luxury life." Which movie?', options: ['Phir Hera Pheri', 'Welcome', 'Dhamaal', 'Fukrey'], answer: 0 },
+  { id: 7, text: '👻 Q7. A funny horror-comedy scene featuring Akshay Kumar — which movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Bhoot Police', 'Roohi'], answer: 1 },
+  { id: 8, text: '🎓 Q8. "Engineering + friendship + absolute chaos" — identify the movie.', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Munna Bhai M.B.B.S.'], answer: 0 },
+  { id: 9, text: '🔥 Q9. 👻 + 🏚️ + 😂 + 💃 Which horror comedy meme movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Roohi', 'Bhoot Police'], answer: 1 },
+  { id: 10, text: '🏃 Q10. 🏃‍♂️🏃‍♂️🏃‍♂️ + 💰 + 🤯 + 🏝️ 4 friends chasing money — Which movie?', options: ['Dhamaal', 'Dhol', 'All the Best', 'De Dana Dan'], answer: 0 }
+];
+
+let questionsG2 = [
+  { id: 11, text: '🎵 Q1. ❤️ + 🫵 + 🌎 Guess the song name!', options: ['Tum Hi Ho', 'Apna Bana Le', 'Kesariya', 'Raataan Lambiyan'], answer: 1 },
+  { id: 12, text: '🎵 Q2. 🌧️ + ❤️🩹 + 🚶‍♂️ + 💔 Guess the song name!', options: ['Agar Tum Saath Ho', 'Channa Mereya', 'Tujhe Kitna Chahne Lage', 'Hamari Adhuri Kahani'], answer: 1 },
+  { id: 13, text: '🎵 Q3. 🌅 + 👩‍❤️‍👨 + 🏠 Guess the song name!', options: ['Apna Bana Le', 'Ranjha', 'Ve Kamleya', 'Hawayein'], answer: 0 },
+  { id: 14, text: '🎵 Q4. 💃 + 🕺 + 🥳 + ❤️ Guess the song name!', options: ['What Jhumka?', 'Gallan Goodiyaan', 'Nacho Nacho', 'Aankh Marey'], answer: 1 },
+  { id: 15, text: '🎵 Q5. 🛣️ + 🚗 + 👬 + 🌍 Guess the song name!', options: ['Ilahi', 'Safarnama', 'Yun Hi Chala Chal', 'Khaabon Ke Parinday'], answer: 1 },
+  { id: 16, text: '⚡ Q6. 🎵 💔 ☕ 🌧️ 👫❌ Guess the song name!', options: ['Channa Mereya', 'Agar Tum Saath Ho', 'Hamari Adhuri Kahani', 'Phir Bhi Tumko Chaahunga'], answer: 1 },
+  { id: 17, text: '🎬 Q7. 👨‍🎓👨‍🎓👨‍🎓 + 🎓 + 🤪 + ❤️ Guess the movie name!', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Rang De Basanti'], answer: 0 },
+  { id: 18, text: '🎬 Q8. 👮 + ❤️ + 😂 + 🏃 Guess the movie name!', options: ['Singham', 'Dabangg', 'Chennai Express', 'Wanted'], answer: 1 },
+  { id: 19, text: '🎬 Q9. 👨‍👩‍👧‍👦 + 💍 + 💃 + 🥳 + 🎶 Guess the movie name!', options: ['Hum Aapke Hain Koun', 'Kabhi Khushi Kabhie Gham', '2 States', 'Rocky Aur Rani Kii Prem Kahaani'], answer: 0 },
+  { id: 20, text: '🎬 Q10. 🧑‍🤝‍🧑 + 🛣️ + 🍺❌ + 🗺️ + ✈️ Guess the movie name!', options: ['Zindagi Na Milegi Dobara', 'Dil Chahta Hai', 'Yeh Jawaani Hai Deewani', 'Tamasha'], answer: 0 }
+];
+
+async function loadQuestionsFromDB() {
+  try {
+    const res = await pool.query('SELECT * FROM questions ORDER BY sort_order ASC, id ASC');
+    if (res.rows.length > 0) {
+      const g1 = [];
+      const g2 = [];
+      res.rows.forEach(r => {
+        const qObj = {
+          id: r.id,
+          text: r.text,
+          image: r.image,
+          options: typeof r.options === 'string' ? JSON.parse(r.options) : r.options,
+          answer: r.answer
+        };
+        if (r.game_id === 'GAME2') {
+          g2.push(qObj);
+        } else {
+          g1.push(qObj);
+        }
+      });
+      if (g1.length > 0) questionsG1 = g1;
+      if (g2.length > 0) questionsG2 = g2;
+      console.log(`Loaded ${questionsG1.length} Game 1 Qs and ${questionsG2.length} Game 2 Qs from Database!`);
+    } else {
+      console.log('Seeding default questions into Database...');
+      let order = 1;
+      for (const q of questionsG1) {
+        await pool.query('INSERT INTO questions (game_id, text, image, options, answer, sort_order) VALUES ($1, $2, $3, $4, $5, $6)',
+          ['GAME1', q.text, q.image || null, JSON.stringify(q.options), q.answer, order++]);
+      }
+      for (const q of questionsG2) {
+        await pool.query('INSERT INTO questions (game_id, text, image, options, answer, sort_order) VALUES ($1, $2, $3, $4, $5, $6)',
+          ['GAME2', q.text, q.image || null, JSON.stringify(q.options), q.answer, order++]);
+      }
+      console.log('Default questions seeded successfully!');
+    }
+  } catch (err) {
+    console.error('Error loading/seeding questions from DB:', err.message);
+  }
+}
+
 pool.connect((err, client, release) => {
   if (err) return console.error('Error acquiring client', err.stack);
   console.log('Connected to Neon Database successfully!');
@@ -45,9 +141,19 @@ pool.connect((err, client, release) => {
       score INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  `, (err) => {
+    CREATE TABLE IF NOT EXISTS questions (
+      id SERIAL PRIMARY KEY,
+      game_id VARCHAR(50) NOT NULL,
+      text TEXT NOT NULL,
+      image TEXT,
+      options JSONB NOT NULL,
+      answer INTEGER NOT NULL,
+      sort_order INT DEFAULT 0
+    );
+  `, async (err) => {
     release();
-    if (err) return console.error('Error creating table', err.stack);
+    if (err) return console.error('Error creating tables', err.stack);
+    await loadQuestionsFromDB();
   });
 });
 
@@ -75,34 +181,7 @@ let questionStartTime = 0;
 let currentQuestionIndex = 0;
 let analyticsBroadcastTimeout = null;
 
-// GAME 1: 10 MEME QUESTIONS
-const questionsG1 = [
-  { id: 1, text: '😂 Q1. This iconic reaction/meme is from which movie?', image: '/meme/Hera-Pheri-Memes-8.jpg', options: ['Hera Pheri', 'Welcome', 'Dhamaal', 'Bhool Bhulaiyaa'], answer: 0 },
-  { id: 2, text: '🤣 Q2. Which Bollywood movie is behind this iconic chaotic meme energy?', image: '/meme/2.jpg', options: ['Welcome', 'Golmaal', 'Phir Hera Pheri', 'Bhool Bhulaiyaa'], answer: 0 },
-  { id: 3, text: '🐱 Q3. What is the cat doing?', image: '/meme/3.mp4', options: ['Trying to hack NASA 🧑💻', 'Doing homework 📚', 'Fighting with the laptop 💻', 'Scooba dance 💃'], answer: 3 },
-  { id: 4, text: '😂 Q4. 💀 When the plan was perfect… until your friend joined. Which movie?', options: ['Dhamaal', 'Welcome', 'Golmaal', 'Housefull'], answer: 0 },
-  { id: 5, text: '😂 Q5. 🧠 When you studied everything except what came in the exam. Which movie?', options: ['3 Idiots', 'Chhichhore', 'Munna Bhai M.B.B.S.', 'Taare Zameen Par'], answer: 0 },
-  { id: 6, text: '😂 Q6. 💸 "Broke but still planning a luxury life." Which movie?', options: ['Phir Hera Pheri', 'Welcome', 'Dhamaal', 'Fukrey'], answer: 0 },
-  { id: 7, text: '👻 Q7. A funny horror-comedy scene featuring Akshay Kumar — which movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Bhoot Police', 'Roohi'], answer: 1 },
-  { id: 8, text: '🎓 Q8. "Engineering + friendship + absolute chaos" — identify the movie.', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Munna Bhai M.B.B.S.'], answer: 0 },
-  { id: 9, text: '🔥 Q9. 👻 + 🏚️ + 😂 + 💃 Which horror comedy meme movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Roohi', 'Bhoot Police'], answer: 1 },
-  { id: 10, text: '🏃 Q10. 🏃‍♂️🏃‍♂️🏃‍♂️ + 💰 + 🤯 + 🏝️ 4 friends chasing money — Which movie?', options: ['Dhamaal', 'Dhol', 'All the Best', 'De Dana Dan'], answer: 0 }
-];
-
-// GAME 2: 10 GUESS THE MOVIE / SONG QUESTIONS
-const questionsG2 = [
-  { id: 11, text: '🎵 Q1. ❤️ + 🫵 + 🌎 Guess the song name!', options: ['Tum Hi Ho', 'Apna Bana Le', 'Kesariya', 'Raataan Lambiyan'], answer: 1 },
-  { id: 12, text: '🎵 Q2. 🌧️ + ❤️🩹 + 🚶‍♂️ + 💔 Guess the song name!', options: ['Agar Tum Saath Ho', 'Channa Mereya', 'Tujhe Kitna Chahne Lage', 'Hamari Adhuri Kahani'], answer: 1 },
-  { id: 13, text: '🎵 Q3. 🌅 + 👩‍❤️‍👨 + 🏠 Guess the song name!', options: ['Apna Bana Le', 'Ranjha', 'Ve Kamleya', 'Hawayein'], answer: 0 },
-  { id: 14, text: '🎵 Q4. 💃 + 🕺 + 🥳 + ❤️ Guess the song name!', options: ['What Jhumka?', 'Gallan Goodiyaan', 'Nacho Nacho', 'Aankh Marey'], answer: 1 },
-  { id: 15, text: '🎵 Q5. 🛣️ + 🚗 + 👬 + 🌍 Guess the song name!', options: ['Ilahi', 'Safarnama', 'Yun Hi Chala Chal', 'Khaabon Ke Parinday'], answer: 1 },
-  { id: 16, text: '⚡ Q6. 🎵 💔 ☕ 🌧️ 👫❌ Guess the song name!', options: ['Channa Mereya', 'Agar Tum Saath Ho', 'Hamari Adhuri Kahani', 'Phir Bhi Tumko Chaahunga'], answer: 1 },
-  { id: 17, text: '🎬 Q7. 👨‍🎓👨‍🎓👨‍🎓 + 🎓 + 🤪 + ❤️ Guess the movie name!', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Rang De Basanti'], answer: 0 },
-  { id: 18, text: '🎬 Q8. 👮 + ❤️ + 😂 + 🏃 Guess the movie name!', options: ['Singham', 'Dabangg', 'Chennai Express', 'Wanted'], answer: 1 },
-  { id: 19, text: '🎬 Q9. 👨‍👩‍👧‍👦 + 💍 + 💃 + 🥳 + 🎶 Guess the movie name!', options: ['Hum Aapke Hain Koun', 'Kabhi Khushi Kabhie Gham', '2 States', 'Rocky Aur Rani Kii Prem Kahaani'], answer: 0 },
-  { id: 20, text: '🎬 Q10. 🧑‍🤝‍🧑 + 🛣️ + 🍺❌ + 🗺️ + ✈️ Guess the movie name!', options: ['Zindagi Na Milegi Dobara', 'Dil Chahta Hai', 'Yeh Jawaani Hai Deewani', 'Tamasha'], answer: 0 }
-];
-
+// HIGH CONCURRENCY DB FIX: Single multi-row batch insert instead of N individual queries
 async function saveLeaderboardToDB() {
   const leaderboard = Object.values(gameState.players)
     .filter(p => p && p.nickname)
@@ -186,6 +265,56 @@ io.on('connection', (socket) => {
       callback({ success: true });
     } else {
       callback({ success: false, error: 'Incorrect password!' });
+    }
+  });
+
+  // Admin Question Management socket handlers
+  socket.on('adminGetQuestions', (callback) => {
+    if (typeof callback === 'function') {
+      callback({ success: true, questionsG1, questionsG2 });
+    }
+  });
+
+  socket.on('adminSaveQuestion', async (payload, callback) => {
+    try {
+      const { gameId, question } = payload; // gameId = 'GAME1' or 'GAME2'
+      if (!question || !question.text || !question.options) {
+        if (typeof callback === 'function') callback({ success: false, error: 'Invalid question data' });
+        return;
+      }
+
+      if (question.id && typeof question.id === 'number') {
+        // Update existing question
+        await pool.query(
+          'UPDATE questions SET text=$1, image=$2, options=$3, answer=$4 WHERE id=$5',
+          [question.text, question.image || null, JSON.stringify(question.options), parseInt(question.answer) || 0, question.id]
+        );
+      } else {
+        // Insert new question
+        await pool.query(
+          'INSERT INTO questions (game_id, text, image, options, answer) VALUES ($1, $2, $3, $4, $5)',
+          [gameId || 'GAME1', question.text, question.image || null, JSON.stringify(question.options), parseInt(question.answer) || 0]
+        );
+      }
+
+      await loadQuestionsFromDB();
+      io.emit('questionsUpdated', { questionsG1, questionsG2 });
+      if (typeof callback === 'function') callback({ success: true, questionsG1, questionsG2 });
+    } catch (err) {
+      console.error('Error saving question:', err);
+      if (typeof callback === 'function') callback({ success: false, error: err.message });
+    }
+  });
+
+  socket.on('adminDeleteQuestion', async (questionId, callback) => {
+    try {
+      await pool.query('DELETE FROM questions WHERE id=$1', [questionId]);
+      await loadQuestionsFromDB();
+      io.emit('questionsUpdated', { questionsG1, questionsG2 });
+      if (typeof callback === 'function') callback({ success: true, questionsG1, questionsG2 });
+    } catch (err) {
+      console.error('Error deleting question:', err);
+      if (typeof callback === 'function') callback({ success: false, error: err.message });
     }
   });
 

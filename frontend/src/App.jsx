@@ -58,6 +58,14 @@ function App() {
   // OTP Verification States
   const [otpInput, setOtpInput] = useState('');
   const [otpError, setOtpError] = useState('');
+
+  // Question Management States
+  const [showQuestionManager, setShowQuestionManager] = useState(false);
+  const [managedQuestions, setManagedQuestions] = useState({ questionsG1: [], questionsG2: [] });
+  const [qmActiveTab, setQmActiveTab] = useState('GAME1');
+  const [editingQ, setEditingQ] = useState(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [qmNotification, setQmNotification] = useState('');
   
   // Music State
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
@@ -74,6 +82,14 @@ function App() {
 
   const { scrollYProgress } = useScroll();
   const yParallax = useTransform(scrollYProgress, [0, 1], [0, -200]);
+
+  const fetchManagedQuestions = useCallback(() => {
+    socket.emit('adminGetQuestions', (res) => {
+      if (res && res.success) {
+        setManagedQuestions({ questionsG1: res.questionsG1 || [], questionsG2: res.questionsG2 || [] });
+      }
+    });
+  }, []);
 
   // Music toggle — uses Web Audio API beep fallback if mp3 not found
   const toggleMusic = () => {
@@ -99,30 +115,32 @@ function App() {
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
+      osc.type = 'sine';
       osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.4);
-    } catch (_) { /* silently fail */ }
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch {
+      // Silent catch
+    }
   };
 
   useEffect(() => {
     socket.on('gameStateUpdate', (state) => {
       setGameState(state);
-      setAnswerResult(null); 
-      setSelectedOption(null);
     });
 
     socket.on('liveAnalytics', (analytics) => {
       setLiveAnalytics(analytics);
     });
 
+    socket.on('questionsUpdated', (data) => {
+      setManagedQuestions(data);
+    });
+
     socket.on('question', (q) => {
-      setGameState(prev => ({ ...prev, currentQuestion: q }));
-      setAnswerResult(null);
       setSelectedOption(null);
+      setAnswerResult(null);
     });
 
     socket.on('timer', (t) => {
@@ -144,6 +162,7 @@ function App() {
     return () => {
       socket.off('gameStateUpdate');
       socket.off('liveAnalytics');
+      socket.off('questionsUpdated');
       socket.off('question');
       socket.off('timer');
       socket.off('answerResult');
@@ -174,88 +193,326 @@ function App() {
       if (res.success) {
         setIsAdmin(true);
         setUiView('JOINED');
+        fetchManagedQuestions();
       } else {
         setAdminLoginError(res.error || 'Incorrect password!');
       }
     });
   };
 
-  const submitAnswer = (index) => {
+  const submitAnswer = (optionIndex) => {
     if (selectedOption !== null || answerResult) return;
-    setSelectedOption(index);
-    socket.emit('submitAnswer', index);
+    setSelectedOption(optionIndex);
+    socket.emit('submitAnswer', optionIndex);
   };
 
-  const adminAction = (action) => {
-    socket.emit('adminAction', action);
+  const adminAction = (action, payload) => {
+    socket.emit('adminAction', action, payload);
   };
 
-  const handleSubmitOtp = (e) => {
+  const submitOtp = (e) => {
     e.preventDefault();
-    if (!otpInput || otpInput.trim() === '') return;
+    if (!otpInput.trim()) return;
     socket.emit('verifyOtp', otpInput.trim());
   };
 
-  // ── Landing Page ──────────────────────────────────────────────────────────
+  // ── Question Manager Modal Component ─────────────────────────────────────
+  const renderQuestionManagerModal = () => {
+    if (!showQuestionManager) return null;
+
+    const currentList = qmActiveTab === 'GAME1' ? (managedQuestions.questionsG1 || []) : (managedQuestions.questionsG2 || []);
+
+    const handleSaveQ = (e) => {
+      e.preventDefault();
+      if (!editingQ || !editingQ.text) return;
+      socket.emit('adminSaveQuestion', { gameId: qmActiveTab, question: editingQ }, (res) => {
+        if (res && res.success) {
+          setManagedQuestions({ questionsG1: res.questionsG1, questionsG2: res.questionsG2 });
+          setEditingQ(null);
+          setQmNotification('✅ Question saved & published live!');
+          setTimeout(() => setQmNotification(''), 3000);
+        } else {
+          setQmNotification('❌ Error: ' + (res?.error || 'Failed to save question'));
+        }
+      });
+    };
+
+    const handleDeleteQ = (id) => {
+      if (!window.confirm('Are you sure you want to delete this question?')) return;
+      socket.emit('adminDeleteQuestion', id, (res) => {
+        if (res && res.success) {
+          setManagedQuestions({ questionsG1: res.questionsG1, questionsG2: res.questionsG2 });
+          setEditingQ(null);
+          setQmNotification('🗑️ Question deleted!');
+          setTimeout(() => setQmNotification(''), 3000);
+        }
+      });
+    };
+
+    const handleMediaUpload = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      setUploadingMedia(true);
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        const base64 = evt.target.result;
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/upload`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileData: base64, fileName: file.name })
+          });
+          const data = await res.json();
+          if (data.success) {
+            setEditingQ(prev => ({ ...prev, image: data.url }));
+          } else {
+            setEditingQ(prev => ({ ...prev, image: base64 }));
+          }
+        } catch (err) {
+          setEditingQ(prev => ({ ...prev, image: base64 }));
+        } finally {
+          setUploadingMedia(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 3000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', boxSizing: 'border-box' }}>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ width: '100%', maxWidth: '850px', maxHeight: '90vh', background: 'rgba(15,15,25,0.95)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}>
+          
+          {/* Header */}
+          <div style={{ padding: '20px 25px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.4)' }}>
+            <div>
+              <span className="glass-badge" style={{ color: 'var(--cyan)', fontSize: '0.65rem' }}>LIVE QUESTION ENGINE</span>
+              <h2 style={{ color: '#fff', fontFamily: 'var(--display-font)', fontSize: '1.4rem', fontWeight: 800, marginTop: '4px' }}>✏️ QUESTION MANAGER</h2>
+            </div>
+            <button onClick={() => { setShowQuestionManager(false); setEditingQ(null); }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', fontSize: '1.2rem', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer' }}>✕</button>
+          </div>
+
+          {qmNotification && (
+            <div style={{ background: 'rgba(34, 211, 238, 0.15)', borderBottom: '1px solid var(--cyan)', color: '#fff', padding: '10px 20px', fontSize: '0.85rem', fontFamily: 'var(--modern-font)', textAlign: 'center', fontWeight: 600 }}>
+              {qmNotification}
+            </div>
+          )}
+
+          {/* Subheader Tabs */}
+          <div style={{ display: 'flex', gap: '10px', padding: '15px 25px', background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.05)', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={() => { setQmActiveTab('GAME1'); setEditingQ(null); }}
+                style={{ padding: '8px 16px', borderRadius: '9999px', border: '1px solid', borderColor: qmActiveTab === 'GAME1' ? 'var(--hot-pink)' : 'rgba(255,255,255,0.1)', background: qmActiveTab === 'GAME1' ? 'rgba(255,0,255,0.2)' : 'transparent', color: qmActiveTab === 'GAME1' ? '#fff' : '#aaa', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                🧠 GAME 1: MEME WAR ({managedQuestions.questionsG1?.length || 0})
+              </button>
+              <button 
+                onClick={() => { setQmActiveTab('GAME2'); setEditingQ(null); }}
+                style={{ padding: '8px 16px', borderRadius: '9999px', border: '1px solid', borderColor: qmActiveTab === 'GAME2' ? 'var(--cyan)' : 'rgba(255,255,255,0.1)', background: qmActiveTab === 'GAME2' ? 'rgba(0,255,255,0.2)' : 'transparent', color: qmActiveTab === 'GAME2' ? '#fff' : '#aaa', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                🎵 GAME 2: MOVIE & SONG ({managedQuestions.questionsG2?.length || 0})
+              </button>
+            </div>
+
+            {!editingQ && (
+              <button 
+                onClick={() => setEditingQ({ text: '', image: '', options: ['', '', '', ''], answer: 0 })}
+                className="navbar-btn-primary"
+                style={{ fontSize: '0.7rem', padding: '6px 14px' }}
+              >
+                ➕ ADD NEW QUESTION
+              </button>
+            )}
+          </div>
+
+          {/* Modal Body */}
+          <div style={{ padding: '25px', overflowY: 'auto', flex: 1 }}>
+            {editingQ ? (
+              /* QUESTION FORM EDITOR */
+              <form onSubmit={handleSaveQ} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ color: 'var(--cyan)', fontFamily: 'var(--modern-font)', fontSize: '1.1rem', fontWeight: 700 }}>
+                    {editingQ.id ? `✏️ EDITING QUESTION #${editingQ.id}` : '➕ CREATE NEW QUESTION'}
+                  </h3>
+                  <button type="button" onClick={() => setEditingQ(null)} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#aaa', padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem', cursor: 'pointer' }}>Cancel</button>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', color: '#ccc', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px' }}>QUESTION TEXT *</label>
+                  <textarea 
+                    value={editingQ.text} 
+                    onChange={(e) => setEditingQ({ ...editingQ, text: e.target.value })} 
+                    placeholder="e.g. 🐱 Q3. What is the cat doing?" 
+                    required 
+                    rows={2} 
+                    style={{ width: '100%', padding: '12px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '10px', color: '#fff', fontSize: '0.9rem', fontFamily: 'var(--body-font)', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', color: '#ccc', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px' }}>IMAGE / VIDEO MEDIA</label>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input 
+                      type="file" 
+                      accept="image/*,video/*" 
+                      onChange={handleMediaUpload} 
+                      style={{ color: '#aaa', fontSize: '0.8rem' }}
+                    />
+                    {uploadingMedia && <span style={{ color: 'var(--cyan)', fontSize: '0.8rem' }}>Uploading media...</span>}
+                  </div>
+
+                  <input 
+                    type="text" 
+                    value={editingQ.image || ''} 
+                    onChange={(e) => setEditingQ({ ...editingQ, image: e.target.value })} 
+                    placeholder="Or paste media URL e.g. /meme/3.mp4 or https://..." 
+                    style={{ width: '100%', padding: '10px', marginTop: '8px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: '#fff', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                  />
+
+                  {editingQ.image && (
+                    <div style={{ marginTop: '12px', background: 'rgba(0,0,0,0.4)', padding: '10px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
+                      <p style={{ color: '#888', fontSize: '0.7rem', marginBottom: '6px' }}>LIVE MEDIA PREVIEW:</p>
+                      {editingQ.image.endsWith('.mp4') || editingQ.image.endsWith('.webm') ? (
+                        <video src={editingQ.image} autoPlay loop muted playsInline style={{ maxHeight: '140px', maxWidth: '100%', borderRadius: '8px' }} />
+                      ) : (
+                        <img src={editingQ.image} alt="Preview" style={{ maxHeight: '140px', maxWidth: '100%', objectFit: 'contain', borderRadius: '8px' }} />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', color: '#ccc', fontSize: '0.8rem', fontWeight: 600, marginBottom: '8px' }}>ANSWER OPTIONS (SELECT CORRECT ONE WITH RADIO) *</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {[0, 1, 2, 3].map(optIdx => (
+                      <div key={optIdx} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '10px', border: editingQ.answer === optIdx ? '1px solid var(--neon-green)' : '1px solid rgba(255,255,255,0.08)' }}>
+                        <input 
+                          type="radio" 
+                          name="correctAnswer" 
+                          checked={editingQ.answer === optIdx} 
+                          onChange={() => setEditingQ({ ...editingQ, answer: optIdx })} 
+                          style={{ accentColor: 'var(--neon-green)', width: '18px', height: '18px', cursor: 'pointer' }}
+                        />
+                        <span style={{ color: editingQ.answer === optIdx ? 'var(--neon-green)' : '#aaa', fontWeight: 700, fontSize: '0.85rem', width: '25px' }}>
+                          {String.fromCharCode(65 + optIdx)}.
+                        </span>
+                        <input 
+                          type="text" 
+                          value={editingQ.options?.[optIdx] || ''} 
+                          onChange={(e) => {
+                            const newOpts = [...(editingQ.options || ['', '', '', ''])];
+                            newOpts[optIdx] = e.target.value;
+                            setEditingQ({ ...editingQ, options: newOpts });
+                          }} 
+                          placeholder={`Option ${String.fromCharCode(65 + optIdx)} text...`} 
+                          required 
+                          style={{ flex: 1, padding: '8px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                  <button type="submit" className="retro-btn" style={{ flex: 1, borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '14px', fontSize: '0.85rem' }}>
+                    💾 SAVE & PUBLISH LIVE
+                  </button>
+                  {editingQ.id && (
+                    <button type="button" onClick={() => handleDeleteQ(editingQ.id)} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', padding: '14px', fontSize: '0.85rem' }}>
+                      🗑️ DELETE
+                    </button>
+                  )}
+                </div>
+              </form>
+            ) : (
+              /* QUESTION LIST VIEW */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {currentList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+                    No questions created for this game yet. Click "➕ ADD NEW QUESTION" above!
+                  </div>
+                ) : (
+                  currentList.map((q, idx) => (
+                    <div key={q.id || idx} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', padding: '16px', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      
+                      {q.image && (
+                        <div style={{ width: '70px', height: '55px', flexShrink: 0, borderRadius: '8px', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {q.image.endsWith('.mp4') || q.image.endsWith('.webm') ? (
+                            <video src={q.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <img src={q.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          )}
+                        </div>
+                      )}
+
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <p style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem', marginBottom: '6px' }}>
+                          {idx + 1}. {q.text}
+                        </p>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          {q.options?.map((opt, oIdx) => (
+                            <span key={oIdx} style={{ fontSize: '0.72rem', padding: '3px 8px', borderRadius: '4px', background: oIdx === q.answer ? 'rgba(57, 255, 20, 0.15)' : 'rgba(255,255,255,0.05)', color: oIdx === q.answer ? 'var(--neon-green)' : '#9ca3af', border: oIdx === q.answer ? '1px solid var(--neon-green)' : '1px solid transparent', fontWeight: oIdx === q.answer ? 700 : 400 }}>
+                              {oIdx === q.answer ? '✓ ' : ''}{String.fromCharCode(65 + oIdx)}: {opt}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => setEditingQ({ ...q })} className="navbar-btn-ghost" style={{ padding: '6px 12px', fontSize: '0.7rem' }}>
+                          ✏️ Edit
+                        </button>
+                        <button onClick={() => handleDeleteQ(q.id)} style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '9999px', padding: '6px 12px', fontSize: '0.7rem', cursor: 'pointer' }}>
+                          🗑️
+                        </button>
+                      </div>
+
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+        </motion.div>
+      </div>
+    );
+  };
+
+  // ── Landing Page ─────────────────────────────────────────────────────────
   const renderLandingPage = () => (
-    <div style={{ width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
-      
-      <div className="video-overlay-radial" />
-      <div className="video-overlay-linear" />
-
-      {/* Header / Navigation */}
-      <nav className="app-navbar">
+    <div style={{ position: 'relative', width: '100%' }}>
+      {/* Sticky Mobile-First App Header Navbar */}
+      <header className="app-navbar">
         <div className="navbar-top-row">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            transition={{ duration: 0.6 }}
-            className="navbar-brand"
-          >
+          <a href="#" className="navbar-brand">
             <img src="/favicon.svg" alt="Arcade Royale Logo" className="navbar-logo" />
-            <span className="navbar-title">
-              ARCADE <span style={{ color: 'var(--cyan)' }}>ROYALE</span>
-            </span>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }} 
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="navbar-actions"
-          >
+            <span className="navbar-title">ARCADE ROYALE</span>
+          </a>
+          <div className="navbar-actions">
             <button onClick={() => setUiView('ADMIN_LOGIN')} className="navbar-btn-ghost">
-              Host Login
+              HOST LOGIN
             </button>
             <button onClick={() => setUiView('ENTER_GAME')} className="navbar-btn-primary">
-              Join Now
+              JOIN NOW
             </button>
-          </motion.div>
+          </div>
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: -5 }} 
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="nav-center-links"
-        >
-          {['ARENA', 'MODES', 'POSTER', 'LEADERBOARD'].map((link, idx) => (
-            <a key={idx} href={`#${link.toLowerCase()}`}>
-              {link}
-            </a>
-          ))}
-        </motion.div>
-      </nav>
-
+        <nav className="nav-center-links">
+          <a href="#arena">ARENA</a>
+          <a href="#modes">MODES</a>
+          <a href="#poster">POSTER</a>
+          <a href="#leaderboard">LEADERBOARD</a>
+        </nav>
+      </header>
 
       {/* Hero Section */}
-      <header id="arena" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '130px 5% 50px 5%', position: 'relative', zIndex: 10 }}>
-        
+      <header id="arena" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '140px 5% 60px 5%', position: 'relative', overflow: 'hidden' }}>
         <motion.div 
+          style={{ y: yParallax, position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '900px' }}
         >
           <div className="glass-badge">✦ LEVEL 99 RETRO SHOWDOWN</div>
 
@@ -263,7 +520,6 @@ function App() {
             THE ULTIMATE REAL-TIME <br/>
             <span className="italic-word">ARCADE</span> SHOWDOWN
           </h1>
-
 
           <p style={{ fontFamily: 'var(--body-font)', fontSize: '1.25rem', fontWeight: 300, color: '#9ca3af', lineHeight: 1.7, marginBottom: '45px', maxWidth: '650px' }}>
             A massive 100-player retro showdown. Test your reflexes, your meme knowledge, and your will to win in an immersive digital arena.
@@ -324,7 +580,6 @@ function App() {
         </div>
       </section>
 
-
       {/* Poster Section */}
       <section id="poster" style={{ padding: '100px 5%', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '60px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -337,24 +592,29 @@ function App() {
             style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}
           >
             <motion.img 
-              src="/psoter1.png" alt="Retro Poster" 
-              className="glass-card"
-              style={{ y: yParallax, width: '100%', maxWidth: '480px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.15)', padding: 0 }} 
+              src="/poster.jpg" 
+              alt="Arcade Royale Official Event Poster" 
+              style={{ width: '100%', maxWidth: '480px', borderRadius: '24px', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}
+              whileHover={{ scale: 1.02, filter: 'brightness(1.1)' }}
+              transition={{ duration: 0.3 }}
             />
           </motion.div>
-          
+
           <motion.div 
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            style={{ flex: '1 1 500px', background: 'rgba(255,255,255,0.02)', padding: '50px', borderRadius: '24px', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ flex: '1 1 500px', maxWidth: '650px' }}
           >
-            <div className="glass-badge" style={{ marginBottom: '20px' }}>ARENA SHOWDOWN</div>
-            <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '3rem', color: '#fff', marginBottom: '25px', lineHeight: '1.1' }}>
-              READY TO <br/><span className="gradient-text">DOMINATE?</span>
+            <div className="glass-badge" style={{ marginBottom: '20px', color: 'var(--hot-pink)' }}>ARENA SHOWDOWN</div>
+            <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '3.5rem', color: '#ffffff', lineHeight: 1.1, marginBottom: '25px' }}>
+              READY TO <br/>
+              <span style={{ background: 'linear-gradient(135deg, var(--hot-pink), var(--cyan), var(--neon-green))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                DOMINATE?
+              </span>
             </h2>
-            <p style={{ fontFamily: 'var(--body-font)', fontWeight: 300, lineHeight: '1.8', color: '#9ca3af', marginBottom: '40px', fontSize: '1.1rem' }}>
+            <p style={{ fontFamily: 'var(--body-font)', fontSize: '1.2rem', fontWeight: 300, color: '#9ca3af', lineHeight: 1.8, marginBottom: '35px' }}>
               Gather your friends, enter the arena, and prove your worth on the global leaderboard. The arcade awaits your arrival.
             </p>
             <button onClick={() => setUiView('ENTER_GAME')} className="magnetic-btn-primary" style={{ width: '100%', padding: '20px' }}>
@@ -385,40 +645,48 @@ function App() {
           ©2026 AiRA LAB. ALL RIGHTS RESERVED.
         </div>
       </footer>
-
     </div>
   );
 
   // ── Enter Game ─────────────────────────────────────────────────────────────
   const renderEnterGame = () => (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="container" style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+      exit={{ opacity: 0, scale: 1.05 }}
+      className="container"
+      style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}
     >
-      <div className="glass-card" style={{ width: '100%', maxWidth: '450px', padding: '60px', textAlign: 'center', background: 'rgba(10,10,15,0.8)', backdropFilter: 'blur(20px)' }}>
-        <h1 style={{ fontFamily: 'var(--retro-font)', fontSize: '2rem', marginBottom: '40px', color: 'var(--cyan)' }}>INSERT COIN</h1>
-        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          <input 
-            type="text" 
-            className="retro-input" 
-            placeholder="ENTER NICKNAME" 
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={15}
-            autoFocus
-          />
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <button type="button" onClick={() => setUiView('LANDING')} className="retro-btn" style={{ border: '2px solid #555', color: '#aaa', background: 'transparent', flex: 1, boxShadow: 'none' }}>BACK</button>
-            <button type="submit" className="retro-btn" style={{ flex: 2 }} disabled={!nickname.trim()}>JOIN LOBBY</button>
-          </div>
-        </form>
-        <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ fontFamily: 'var(--modern-font)', fontSize: '0.75rem', color: '#888', letterSpacing: '2px', textTransform: 'uppercase' }}>
-            Built By <span className="gradient-text" style={{ fontWeight: 900, marginLeft: '5px' }}>MEET G. DAVE</span>
-          </div>
-          <p style={{ color: '#555', fontSize: '0.7rem', fontFamily: 'var(--modern-font)', marginTop: '8px' }}>@2026 AiRA Lab</p>
+      <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '50px', position: 'relative' }}>
+        <button onClick={() => setUiView('LANDING')} style={{ position: 'absolute', top: '20px', left: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', fontFamily: 'var(--body-font)', fontSize: '0.9rem' }}>
+          ← Back
+        </button>
+
+        <div style={{ textAlign: 'center', marginBottom: '35px' }}>
+          <div className="glass-badge" style={{ marginBottom: '15px' }}>PLAYER PORTAL</div>
+          <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '2rem', color: '#fff' }}>ENTER THE ARENA</h2>
         </div>
+
+        <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <label style={{ display: 'block', fontFamily: 'var(--body-font)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.1em', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase' }}>
+              PLAYER NICKNAME
+            </label>
+            <input 
+              type="text" 
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="e.g. CYBER_PUNK_99" 
+              required
+              style={{ width: '100%', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', color: '#fff', fontFamily: 'var(--body-font)', fontSize: '1rem', outline: 'none' }}
+            />
+          </div>
+
+          <button type="submit" className="magnetic-btn-primary" style={{ width: '100%', padding: '18px' }}>
+            <div className="bg-hover" />
+            <span>JOIN GAME</span>
+          </button>
+        </form>
       </div>
     </motion.div>
   );
@@ -426,82 +694,70 @@ function App() {
   // ── Admin Login ────────────────────────────────────────────────────────────
   const renderAdminLogin = () => (
     <motion.div 
-      initial={{ opacity: 0, y: -50 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="container" style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="container"
+      style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}
     >
-      <div className="glass-card" style={{ width: '100%', maxWidth: '450px', padding: '60px', textAlign: 'center', background: 'rgba(10,10,15,0.8)', backdropFilter: 'blur(20px)' }}>
-        <h1 style={{ fontFamily: 'var(--retro-font)', fontSize: '2rem', color: 'var(--hot-pink)', marginBottom: '40px' }}>HOST LOGIN</h1>
-        <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <input 
-            type="password" 
-            className="retro-input" 
-            placeholder="ENTER PASSWORD" 
-            value={adminPassword}
-            onChange={(e) => { setAdminPassword(e.target.value); setAdminLoginError(''); }}
-            style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)' }}
-            autoFocus
-          />
-          {adminLoginError && (
-            <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} style={{ color: '#ef4444', fontFamily: 'var(--modern-font)', fontSize: '0.95rem', fontWeight: 600 }}>
-              ⚠️ {adminLoginError}
-            </motion.p>
-          )}
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <button type="button" onClick={() => setUiView('LANDING')} className="retro-btn" style={{ border: '2px solid #555', color: '#aaa', background: 'transparent', flex: 1, boxShadow: 'none' }}>BACK</button>
-            <button type="submit" className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', flex: 2 }}>LOGIN</button>
-          </div>
-        </form>
-        <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ fontFamily: 'var(--modern-font)', fontSize: '0.75rem', color: '#888', letterSpacing: '2px', textTransform: 'uppercase' }}>
-            Built By <span className="gradient-text" style={{ fontWeight: 900, marginLeft: '5px' }}>MEET G. DAVE</span>
-          </div>
-          <p style={{ color: '#555', fontSize: '0.7rem', fontFamily: 'var(--modern-font)', marginTop: '8px' }}>@2026 AiRA Lab</p>
+      <div className="glass-card" style={{ width: '100%', maxWidth: '480px', padding: '50px', position: 'relative' }}>
+        <button onClick={() => setUiView('LANDING')} style={{ position: 'absolute', top: '20px', left: '20px', background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', fontFamily: 'var(--body-font)', fontSize: '0.9rem' }}>
+          ← Back
+        </button>
+
+        <div style={{ textAlign: 'center', marginBottom: '35px' }}>
+          <div className="glass-badge" style={{ marginBottom: '15px', color: 'var(--hot-pink)' }}>ADMIN AUTHENTICATION</div>
+          <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '2rem', color: '#fff' }}>HOST ACCESS</h2>
         </div>
+
+        <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <label style={{ display: 'block', fontFamily: 'var(--body-font)', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.1em', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase' }}>
+              HOST PASSWORD
+            </label>
+            <input 
+              type="password" 
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              placeholder="Enter host password..." 
+              required
+              style={{ width: '100%', padding: '16px 20px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px', color: '#fff', fontFamily: 'var(--body-font)', fontSize: '1rem', outline: 'none' }}
+            />
+          </div>
+
+          {adminLoginError && (
+            <p style={{ color: '#ef4444', fontFamily: 'var(--body-font)', fontSize: '0.9rem', textAlign: 'center' }}>
+              {adminLoginError}
+            </p>
+          )}
+
+          <button type="submit" className="glass-btn-secondary" style={{ width: '100%', padding: '18px' }}>
+            <span>AUTHENTICATE HOST</span>
+          </button>
+        </form>
       </div>
     </motion.div>
   );
 
-  // ── Joined Lobby ──────────────────────────────────────────────────────────
+  // ── Joined Lobby / Verification / Game ─────────────────────────────────────
   const renderJoinedLobby = () => (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="container" style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+      className="container" style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}
     >
-      <div className="glass-card" style={{ textAlign: 'center', padding: '60px', maxWidth: '700px', width: '100%', background: 'rgba(10,10,15,0.8)', backdropFilter: 'blur(20px)' }}>
+      <div className="glass-card" style={{ textAlign: 'center', padding: '50px', maxWidth: '600px', width: '100%' }}>
+        <div className="glass-badge" style={{ marginBottom: '20px', color: 'var(--cyan)' }}>CONNECTED TO ARENA</div>
+        
         {isAdmin ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 style={{ fontFamily: 'var(--retro-font)', color: 'var(--neon-green)', marginBottom: '5px', fontSize: '2rem' }}>ADMIN DASHBOARD</h2>
-            <div style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '15px', padding: '20px 30px', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-              <div>
-                <p style={{ fontSize: '1rem', color: '#ccc', fontFamily: 'var(--modern-font)' }}>Connected Players</p>
-                <p className="gradient-text" style={{ fontSize: '4rem', margin: '5px 0', fontFamily: 'var(--retro-font)' }}>{safePlayerCount}</p>
-              </div>
-              <div style={{ width: '1px', height: '60px', background: 'rgba(255,255,255,0.1)' }} />
-              <div>
-                <p style={{ fontSize: '1rem', color: '#ccc', fontFamily: 'var(--modern-font)' }}>Status</p>
-                <p style={{ color: 'var(--neon-green)', fontFamily: 'var(--retro-font)', fontSize: '1.2rem', marginTop: '5px' }}>LOBBY</p>
-              </div>
-            </div>
-
-            {/* Live player list */}
-            {safePlayerList.length > 0 && (
-              <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                {safePlayerList.map(p => (
-                  <div key={p.id} className="admin-player-chip">
-                    <span className="chip-dot" />
-                    {p.nickname}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px', fontSize: '0.9rem', flex: 1, minWidth: '180px' }}>
-                VERIFY PRESENCE ✋
+          <div>
+            <h2 style={{ fontFamily: 'var(--display-font)', color: '#fff', fontSize: '2rem', marginBottom: '15px' }}>HOST DASHBOARD</h2>
+            <p style={{ color: '#9ca3af', fontFamily: 'var(--body-font)', marginBottom: '30px' }}>Players in lobby: <strong style={{ color: 'var(--neon-green)' }}>{safePlayerCount}</strong></p>
+            
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)' }}>
+                START PRESENCE CHECK ✋
               </button>
-              <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '15px', fontSize: '0.9rem', flex: 1, minWidth: '180px' }}>
-                START ARCADE 🚀
+              <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)' }}>
+                ✏️ EDIT & MANAGE QUESTIONS
               </button>
             </div>
           </div>
@@ -550,32 +806,22 @@ function App() {
               </button>
             </div>
 
-            {/* Stats */}
-            <div style={{ background: 'rgba(0,0,0,0.5)', borderRadius: '15px', padding: '20px', margin: '20px 0', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-              <div>
-                <p style={{ color: '#aaa', fontFamily: 'var(--modern-font)', fontSize: '0.9rem' }}>VERIFIED PLAYERS</p>
-                <p className="gradient-text" style={{ fontSize: '3rem', fontFamily: 'var(--retro-font)', margin: '5px 0' }}>{verifiedCount} / {totalPlayers}</p>
-              </div>
-              <div style={{ width: '1px', height: '50px', background: 'rgba(255,255,255,0.1)' }} />
-              <div>
-                <p style={{ color: '#aaa', fontFamily: 'var(--modern-font)', fontSize: '0.9rem' }}>STATUS</p>
-                <p style={{ color: verifiedCount === totalPlayers && totalPlayers > 0 ? 'var(--neon-green)' : 'gold', fontSize: '1.3rem', fontFamily: 'var(--retro-font)', marginTop: '5px' }}>
-                  {verifiedCount === totalPlayers && totalPlayers > 0 ? 'ALL READY!' : 'CHECKING...'}
-                </p>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', padding: '15px 25px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '25px' }}>
+              <span style={{ color: '#aaa', fontFamily: 'var(--modern-font)', fontSize: '1rem' }}>VERIFIED PLAYERS:</span>
+              <span style={{ color: 'var(--neon-green)', fontFamily: 'var(--retro-font)', fontSize: '1.6rem' }}>
+                {verifiedCount} / {totalPlayers}
+              </span>
             </div>
 
-            {/* Player grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px', maxHeight: '180px', overflowY: 'auto', padding: '10px', marginBottom: '25px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            {/* Scrollable Player List */}
+            <div style={{ maxHeight: '160px', overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center', marginBottom: '30px', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px' }}>
               {safePlayerList.length === 0 ? (
-                <p style={{ color: '#888', gridColumn: '1 / -1', padding: '20px' }}>No players in lobby</p>
+                <p style={{ color: '#666', fontFamily: 'var(--modern-font)' }}>No players connected yet...</p>
               ) : (
-                safePlayerList.map((p) => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: p.verified ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', border: p.verified ? '1px solid var(--neon-green)' : '1px solid rgba(255,255,255,0.1)' }}>
-                    <span style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, color: '#fff', fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nickname}</span>
-                    <span style={{ fontSize: '0.85rem', fontFamily: 'var(--retro-font)', color: p.verified ? 'var(--neon-green)' : '#888' }}>
-                      {p.verified ? '✅' : '⏳'}
-                    </span>
+                safePlayerList.map(p => (
+                  <div key={p.id} className="admin-player-chip" style={{ opacity: p.verified ? 1 : 0.4 }}>
+                    <div className="chip-dot" style={{ background: p.verified ? 'var(--neon-green)' : '#666', boxShadow: p.verified ? '0 0 6px var(--neon-green)' : 'none' }} />
+                    <span>{p.nickname}</span>
                   </div>
                 ))
               )}
@@ -587,6 +833,9 @@ function App() {
               </button>
               <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ flex: 1, minWidth: '160px', borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '14px', fontSize: '0.85rem' }}>
                 🎵 START GAME 2 (MOVIE & SONG)
+              </button>
+              <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '14px', fontSize: '0.8rem' }}>
+                ✏️ EDIT QUESTIONS
               </button>
               <button onClick={() => adminAction('KICK_UNVERIFIED')} className="retro-btn" style={{ borderColor: '#eab308', color: '#eab308', padding: '14px', fontSize: '0.8rem' }}>
                 KICK UNVERIFIED
@@ -614,74 +863,75 @@ function App() {
             PRESENCE CHECK
           </h2>
 
-          <p style={{ fontFamily: 'var(--modern-font)', color: '#ccc', fontSize: '1rem', marginBottom: '30px', lineHeight: '1.6' }}>
-            Enter the 4-digit OTP shown on the Host screen to verify your presence!
-          </p>
-
           {isVerified ? (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              style={{ background: 'rgba(34, 197, 94, 0.15)', border: '2px solid var(--neon-green)', padding: '30px', borderRadius: '16px', boxShadow: '0 0 30px rgba(34, 197, 94, 0.2)' }}
-            >
-              <div style={{ fontSize: '3rem', marginBottom: '10px' }}>✅</div>
-              <h3 style={{ fontFamily: 'var(--retro-font)', color: 'var(--neon-green)', fontSize: '1.4rem', marginBottom: '10px' }}>VERIFIED WITH OTP!</h3>
-              <p style={{ fontFamily: 'var(--modern-font)', color: '#aaa', fontSize: '0.95rem' }}>Waiting for host to start the game round...</p>
-            </motion.div>
+            <div style={{ marginTop: '30px' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '15px' }}>✅</div>
+              <h3 style={{ color: 'var(--neon-green)', fontFamily: 'var(--retro-font)', fontSize: '1.5rem', marginBottom: '15px' }}>VERIFIED & READY!</h3>
+              <p style={{ color: '#aaa', fontFamily: 'var(--modern-font)', fontSize: '1rem' }}>You're confirmed in the arena. Waiting for the host to launch the game...</p>
+            </div>
           ) : (
-            <form onSubmit={handleSubmitOtp} style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
-              <input 
-                type="text" 
-                maxLength={4}
-                value={otpInput}
-                onChange={(e) => {
-                  setOtpInput(e.target.value.replace(/[^0-9]/g, ''));
-                  setOtpError('');
-                }}
-                placeholder="0000"
-                className="retro-input"
-                style={{ textAlign: 'center', fontSize: '2.5rem', letterSpacing: '10px', width: '220px', padding: '15px', color: 'var(--cyan)', borderColor: 'var(--cyan)' }}
-                autoFocus
-              />
-              {otpError && (
-                <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} style={{ color: '#ef4444', fontFamily: 'var(--modern-font)', fontSize: '0.95rem', fontWeight: 600 }}>
-                  ⚠️ {otpError}
-                </motion.p>
-              )}
-              <button type="submit" className="retro-btn" style={{ width: '100%', padding: '20px', fontSize: '1.2rem', borderColor: 'var(--neon-green)', color: 'var(--neon-green)', background: 'rgba(34, 197, 94, 0.15)' }}>
-                VERIFY OTP ✋
-              </button>
-            </form>
-          )}
+            <div>
+              <p style={{ color: '#ccc', fontFamily: 'var(--modern-font)', fontSize: '1.1rem', marginBottom: '30px', lineHeight: 1.6 }}>
+                Enter the 4-digit OTP shown on the host screen to confirm your presence!
+              </p>
 
-          <div style={{ marginTop: '30px', color: '#666', fontFamily: 'var(--modern-font)', fontSize: '0.85rem' }}>
-            PLAYER: <span style={{ color: '#fff', fontWeight: 700 }}>{nickname}</span>
-          </div>
+              <form onSubmit={submitOtp} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <input 
+                  type="text" 
+                  maxLength={4}
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value)}
+                  placeholder="e.g. 1234"
+                  style={{ textAlign: 'center', fontSize: '3rem', fontFamily: 'var(--retro-font)', letterSpacing: '15px', color: 'var(--cyan)', background: 'rgba(0,0,0,0.6)', border: '2px solid var(--cyan)', borderRadius: '16px', padding: '15px', outline: 'none' }}
+                />
+
+                {otpError && (
+                  <p style={{ color: '#ef4444', fontFamily: 'var(--modern-font)', fontSize: '0.9rem' }}>{otpError}</p>
+                )}
+
+                <button type="submit" className="retro-btn" style={{ padding: '18px', fontSize: '1rem', borderColor: 'var(--neon-green)', color: 'var(--neon-green)' }}>
+                  VERIFY PRESENCE ✋
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </motion.div>
     );
   };
 
-  // ── Game View ──────────────────────────────────────────────────────────────
+  // ── Game View ─────────────────────────────────────────────────────────────
   const renderGame = () => {
-    const totalQ = gameState?.totalQuestions || 0;
-    const currentQIdx = (gameState?.currentQuestionIndex ?? 0) + 1;
+    if (!safeCurrentQuestion) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#fff', fontFamily: 'var(--retro-font)' }}>
+          LOADING QUESTION...
+        </div>
+      );
+    }
 
+    // ADMIN VIEW
     if (isAdmin) {
       return (
-        <motion.div 
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 20px' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '25px' }}>
-            <h1 style={{ fontFamily: 'var(--retro-font)', fontSize: '2rem', color: '#fff', textShadow: '0 5px 15px rgba(0,0,0,0.8)' }}>ADMIN ANALYTICS</h1>
-            {totalQ > 0 && (
-              <div className="q-progress-badge">Q {currentQIdx} / {totalQ}</div>
-            )}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ minHeight: '100vh', padding: '30px 5%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', background: 'rgba(10,10,15,0.85)', padding: '20px 30px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div>
+              <span className="glass-badge" style={{ color: 'var(--cyan)', fontSize: '0.7rem' }}>HOST CONTROL CENTER</span>
+              <h1 style={{ fontFamily: 'var(--retro-font)', color: '#fff', fontSize: '1.4rem', marginTop: '5px' }}>
+                PHASE: {gameState.phase} — Q {(gameState.currentQuestionIndex || 0) + 1}/{gameState.totalQuestions || 20}
+              </h1>
+            </div>
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ color: '#aaa', fontSize: '0.75rem', fontFamily: 'var(--modern-font)' }}>TOTAL ANSWERS</p>
+                <p style={{ color: 'var(--neon-green)', fontFamily: 'var(--retro-font)', fontSize: '1.8rem' }}>{safeAnalytics.totalAnswers} / {safePlayerCount}</p>
+              </div>
+            </div>
           </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', width: '100%', maxWidth: '1200px' }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '25px' }}>
             
-            {/* Left Column */}
+            {/* Question Info */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="glass-card" style={{ padding: '28px', background: 'rgba(10,10,15,0.9)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
@@ -727,21 +977,16 @@ function App() {
               </div>
             </div>
 
-            {/* Right Column */}
+            {/* Fastest Fingers & Host Controls */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div className="glass-card" style={{ padding: '28px', background: 'rgba(10,10,15,0.9)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontFamily: 'var(--modern-font)', color: '#aaa', fontSize: '1.1rem' }}>TOTAL RESPONSES</div>
-                <div style={{ fontFamily: 'var(--retro-font)', fontSize: '2rem', color: 'var(--neon-green)' }}>{safeAnalytics.totalAnswers} <span style={{ fontSize: '1rem', color: '#555' }}>/ {safePlayerCount}</span></div>
-              </div>
-
-              <div className="glass-card" style={{ padding: '28px', background: 'rgba(10,10,15,0.9)', flex: 1 }}>
-                <h3 style={{ color: 'gold', fontFamily: 'var(--retro-font)', marginBottom: '18px', fontSize: '0.85rem' }}>⚡ FASTEST FINGERS</h3>
-                {!safeAnalytics.fastestFingers || safeAnalytics.fastestFingers.length === 0 ? (
-                  <p style={{ color: '#555', fontFamily: 'var(--modern-font)' }}>Waiting for correct answers...</p>
+              <div className="glass-card" style={{ padding: '28px', background: 'rgba(10,10,15,0.9)' }}>
+                <h3 style={{ color: 'gold', fontFamily: 'var(--retro-font)', marginBottom: '18px', fontSize: '0.85rem' }}>⚡ FASTEST FINGERS TOP 5</h3>
+                {safeAnalytics.fastestFingers?.length === 0 ? (
+                  <p style={{ color: '#666', fontFamily: 'var(--modern-font)' }}>Waiting for correct answers...</p>
                 ) : (
-                  safeAnalytics.fastestFingers.map((f, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, color: '#fff', fontSize: '1.1rem' }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'} {f.nickname}</span>
+                  safeAnalytics.fastestFingers?.map((f, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ color: '#fff', fontFamily: 'var(--modern-font)', fontSize: '0.9rem', fontWeight: 600 }}>{idx + 1}. {f.nickname}</span>
                       <span style={{ fontFamily: 'var(--retro-font)', color: 'var(--neon-green)', fontSize: '0.85rem' }}>{f.timeTaken}s</span>
                     </div>
                   ))
@@ -750,8 +995,9 @@ function App() {
 
               <div className="glass-card" style={{ padding: '20px', background: 'rgba(0,0,0,0.8)', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button onClick={() => adminAction('NEXT_QUESTION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', fontSize: '0.9rem', padding: '10px 15px', width: '100%', marginBottom: '5px' }}>NEXT QUESTION ➔</button>
-                <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>↺ GAME 1 (MEME)</button>
-                <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>🎵 GAME 2 (MOVIE/SONG)</button>
+                <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>↺ GAME 1</button>
+                <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>🎵 GAME 2</button>
+                <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', fontSize: '0.75rem', padding: '8px 12px' }}>✏️ EDIT QUESTIONS</button>
                 <button onClick={() => adminAction('SHOW_LEADERBOARD')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', fontSize: '0.75rem', padding: '8px 12px' }}>🏆 LEADERBOARD</button>
                 <button onClick={() => adminAction('STOP_GAME')} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', fontSize: '0.75rem', padding: '8px 12px', width: '100%', marginTop: '5px' }}>🛑 STOP & RESET</button>
               </div>
@@ -769,23 +1015,28 @@ function App() {
 
     return (
       <motion.div 
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '20px' }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', position: 'relative' }}
       >
-        {/* Score HUD */}
-        <div className="score-hud glass-card" style={{ position: 'fixed', top: 20, right: 20, textAlign: 'right', padding: '12px 20px', background: 'rgba(10,10,15,0.8)', zIndex: 50 }}>
-           <p style={{ color: '#aaa', fontSize: '0.75rem', marginBottom: '4px', fontFamily: 'var(--modern-font)' }}>PLAYER: <span style={{ color: '#fff' }}>{nickname}</span></p>
-           <p key={scoreAnimKey} className="score-pop" style={{ color: 'var(--neon-green)', fontSize: '1.2rem', fontFamily: 'var(--retro-font)' }}>SCORE: {myScore}</p>
+        {/* Top HUD: Score & Progress */}
+        <div className="score-hud">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '0.65rem', color: '#aaa', letterSpacing: '1px' }}>QUESTION</span>
+            <span style={{ fontFamily: 'var(--retro-font)', fontSize: '0.8rem', color: 'var(--cyan)' }}>
+              {(gameState.currentQuestionIndex || 0) + 1}/{gameState.totalQuestions || 20}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', key: scoreAnimKey }}>
+            <span style={{ fontSize: '0.65rem', color: '#aaa', letterSpacing: '1px' }}>YOUR SCORE</span>
+            <span className="scorePop" style={{ fontFamily: 'var(--retro-font)', fontSize: '1.2rem', color: 'gold' }}>
+              {myScore} PTS
+            </span>
+          </div>
         </div>
 
-        {/* Progress Badge */}
-        {totalQ > 0 && (
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <div className="q-progress-badge">Q {currentQIdx} / {totalQ}</div>
-          </div>
-        )}
-        
-        {safeCurrentQuestion ? (
+        {/* Question & Options Card */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <div className="glass-card" style={{ textAlign: 'center', maxWidth: '800px', width: '100%', padding: '40px', background: 'rgba(10,10,15,0.85)' }}>
             
             {/* Timer arc */}
@@ -823,62 +1074,60 @@ function App() {
                 <p style={{ fontFamily: 'var(--modern-font)', color: '#aaa', fontSize: '0.9rem' }}>Waiting for others<span className="waiting-dots"><span>.</span><span>.</span><span>.</span></span></p>
               </div>
             ) : (
-              <div className="mobile-stack-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                {safeCurrentQuestion.options?.map((opt, i) => (
-                  <button 
-                    key={i} 
-                    className="retro-btn" 
-                    style={{ fontSize: '1rem', padding: '20px', fontFamily: 'var(--modern-font)', fontWeight: 700, transition: 'all 0.2s' }}
-                    onClick={() => submitAnswer(i)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '15px' }}>
+                {safeCurrentQuestion.options?.map((opt, idx) => (
+                  <motion.button 
+                    key={idx}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => submitAnswer(idx)}
+                    className="retro-btn option-btn"
+                    style={{ fontSize: '0.95rem', padding: '18px 24px', textTransform: 'none', background: 'rgba(255,255,255,0.05)', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '12px' }}
                   >
-                    {opt}
-                  </button>
+                    <span style={{ color: 'var(--cyan)', fontFamily: 'var(--retro-font)', fontSize: '0.8rem' }}>{String.fromCharCode(65 + idx)}.</span>
+                    <span>{opt}</span>
+                  </motion.button>
                 ))}
               </div>
             )}
+
           </div>
-        ) : (
-          <motion.h2 animate={{ opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1 }} className="gradient-text" style={{ fontFamily: 'var(--retro-font)', fontSize: '2rem' }}>PREPARING QUESTION...</motion.h2>
-        )}
+        </div>
       </motion.div>
     );
   };
 
-
-
-  // ── Leaderboard ───────────────────────────────────────────────────────────
+  // ── Leaderboard View ─────────────────────────────────────────────────────
   const renderLeaderboard = () => {
-    const MEDALS = ['🥇', '🥈', '🥉'];
-    const ROW_CLASSES = ['lb-row-gold', 'lb-row-silver', 'lb-row-bronze', 'lb-row-default'];
-    const NAME_COLORS = ['#fbbf24', '#9ca3af', '#b47c3c', '#ffffff'];
+    const leaderboard = gameState.leaderboard || [];
 
     return (
-      <motion.div 
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        className="container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 20px' }}
-      >
-        <h1 className="gradient-text" style={{ fontFamily: 'var(--retro-font)', fontSize: '3.5rem', marginBottom: '40px', textShadow: '0 5px 15px rgba(0,0,0,0.8)', textAlign: 'center' }}>FINAL STANDINGS</h1>
-        <div className="glass-card" style={{ padding: '40px', width: '100%', maxWidth: '800px', background: 'rgba(10,10,15,0.8)' }}>
-          {gameState?.leaderboard && gameState.leaderboard.map((p, i) => (
-            <motion.div 
-              key={p.id} 
-              initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
-              className={ROW_CLASSES[Math.min(i, 3)]}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontFamily: 'var(--retro-font)', fontSize: i < 3 ? '2rem' : '1.2rem', color: i < 3 ? NAME_COLORS[i] : '#555', minWidth: '40px', textAlign: 'center' }}>
-                  {i < 3 ? MEDALS[i] : `${i + 1}.`}
-                </span>
-                <span style={{ fontFamily: 'var(--modern-font)', fontWeight: 700, fontSize: i === 0 ? '1.8rem' : i < 3 ? '1.5rem' : '1.3rem', color: NAME_COLORS[Math.min(i, 3)] }}>
-                  {p.nickname}
-                </span>
-              </div>
-              <span style={{ color: 'var(--neon-green)', fontFamily: 'var(--retro-font)', fontSize: i === 0 ? '2rem' : '1.5rem' }}>{p.score}</span>
-            </motion.div>
-          ))}
-          {(!gameState?.leaderboard || gameState.leaderboard.length === 0) && (
-            <p style={{ color: '#555', fontFamily: 'var(--modern-font)', textAlign: 'center', padding: '40px' }}>No scores yet...</p>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div className="glass-badge" style={{ marginBottom: '15px', color: 'gold' }}>HALL OF FAME</div>
+          <h1 style={{ fontFamily: 'var(--retro-font)', fontSize: '3rem', color: '#fff', textShadow: '0 0 30px rgba(255,215,0,0.5)' }}>FINAL STANDINGS</h1>
+        </div>
+
+        <div className="glass-card" style={{ maxWidth: '700px', width: '100%', padding: '40px', background: 'rgba(10,10,15,0.85)' }}>
+          {leaderboard.length === 0 ? (
+            <p style={{ textAlign: 'center', color: '#888', fontFamily: 'var(--modern-font)' }}>No scores recorded yet...</p>
+          ) : (
+            leaderboard.map((p, idx) => {
+              const medals = ['🥇', '🥈', '🥉'];
+              const isTop3 = idx < 3;
+              const medal = medals[idx] || `#${idx + 1}`;
+              const isMe = p.nickname === nickname;
+
+              return (
+                <motion.div key={p.id || idx} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} className={isTop3 ? `leaderboard-row top-3 rank-${idx + 1}` : 'leaderboard-row'} style={{ border: isMe ? '2px solid var(--cyan)' : undefined }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <span className="rank-badge">{medal}</span>
+                    <span style={{ color: isMe ? 'var(--cyan)' : '#fff', fontWeight: isMe ? 800 : 600 }}>{p.nickname} {isMe ? '(YOU)' : ''}</span>
+                  </div>
+                  <span style={{ color: 'gold', fontFamily: 'var(--retro-font)', fontSize: '1rem' }}>{p.score} PTS</span>
+                </motion.div>
+              );
+            })
           )}
         </div>
 
@@ -889,6 +1138,9 @@ function App() {
             </button>
             <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px 25px', fontSize: '0.9rem' }}>
               START GAME 2 (MOVIE & SONG) 🎵
+            </button>
+            <button onClick={() => { fetchManagedQuestions(); setShowQuestionManager(true); }} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '15px 25px', fontSize: '0.9rem' }}>
+              ✏️ EDIT & MANAGE QUESTIONS
             </button>
             <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'gold', color: 'gold', padding: '15px 25px', fontSize: '0.9rem' }}>
               NEW PRESENCE CHECK ✋
@@ -931,6 +1183,9 @@ function App() {
           {gameState?.phase === 'LEADERBOARD' && renderLeaderboard()}
         </>
       )}
+
+      {/* Admin Question Manager Modal */}
+      {isAdmin && renderQuestionManagerModal()}
 
       {/* Music toggle */}
       <button 
