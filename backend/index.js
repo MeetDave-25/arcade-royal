@@ -4,20 +4,14 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Serve uploads folder statically if present
-const uploadsDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadsDir));
+// NOTE: Render uses an ephemeral filesystem — do NOT save files to disk.
+// Images are stored as base64 Data URLs directly in the PostgreSQL database.
 
 // Health Check for Render / Uptime Monitoring
 app.get('/', (req, res) => {
@@ -25,25 +19,28 @@ app.get('/', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime(), playersCount: Object.keys(gameState.players).length, timestamp: new Date() });
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date() });
 });
 
 // API endpoint to upload image/video for questions
+// Instead of writing to disk (lost on Render restart), we return the base64 data URL
+// directly so it gets saved in the PostgreSQL `image` column and persists forever.
 app.post('/api/upload', (req, res) => {
   try {
     const { fileData, fileName } = req.body;
     if (!fileData) return res.status(400).json({ error: 'No file data provided' });
 
-    const base64Data = fileData.includes(';base64,') ? fileData.split(';base64,').pop() : fileData;
-    const safeName = `${Date.now()}_${(fileName || 'media').replace(/[^a-zA-Z0-9._-]/g, '')}`;
-    const filePath = path.join(uploadsDir, safeName);
+    // Validate it looks like a data URL or raw base64
+    if (!fileData.startsWith('data:') && !fileData.match(/^[A-Za-z0-9+/=]+$/)) {
+      return res.status(400).json({ error: 'Invalid file data format' });
+    }
 
-    fs.writeFileSync(filePath, base64Data, 'base64');
-    const mediaUrl = `/uploads/${safeName}`;
-    res.json({ success: true, url: mediaUrl });
+    // Return the data URL as-is — it will be stored in the DB image column
+    console.log(`Media received: ${fileName || 'unknown'}, size: ~${Math.round(fileData.length / 1024)}KB`);
+    res.json({ success: true, url: fileData });
   } catch (err) {
     console.error('Media upload error:', err);
-    res.status(500).json({ error: 'Failed to upload media' });
+    res.status(500).json({ error: 'Failed to process media' });
   }
 });
 
