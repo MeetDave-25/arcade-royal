@@ -55,7 +55,9 @@ function App() {
   const [liveAnalytics, setLiveAnalytics] = useState({ totalAnswers: 0, optionCounts: [0, 0, 0, 0], fastestFingers: [], correctOption: null });
   
   // UI States
-  const [uiView, setUiView] = useState('LANDING'); // LANDING, ENTER_GAME, ADMIN_LOGIN, JOINED
+  const isLeaderboardModeUrl = new URLSearchParams(window.location.search).get('mode') === 'leaderboard';
+  const [uiView, setUiView] = useState(isLeaderboardModeUrl ? 'STANDALONE_LEADERBOARD' : 'LANDING'); // LANDING, ENTER_GAME, ADMIN_LOGIN, JOINED, STANDALONE_LEADERBOARD
+  const [adminControlMode, setAdminControlMode] = useState('CONTROLLER'); // 'CONTROLLER' or 'PRESENTATION'
   const [nickname, setNickname] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -192,6 +194,12 @@ function App() {
       setScoreAnimKey(k => k + 1);
     }
   }, [safeMyPlayer?.score]);
+
+  // Reset player answer state cleanly when question index or phase changes (prevents question loops)
+  useEffect(() => {
+    setSelectedOption(null);
+    setAnswerResult(null);
+  }, [gameState?.currentQuestionIndex, gameState?.phase]);
 
   const handleJoin = (e) => {
     e.preventDefault();
@@ -542,7 +550,7 @@ function App() {
             A massive 100-player retro showdown. Test your reflexes, your meme knowledge, and your will to win in an immersive digital arena.
           </p>
 
-          <div className="hero-cta-group">
+          <div className="hero-cta-group" style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
             <button onClick={() => setUiView('ENTER_GAME')} className="magnetic-btn-primary">
               <div className="bg-hover" />
               <span>INSERT COIN</span>
@@ -551,6 +559,10 @@ function App() {
             <button onClick={() => setUiView('ADMIN_LOGIN')} className="glass-btn-secondary">
               <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               <span>HOST ARENA</span>
+            </button>
+
+            <button onClick={() => setUiView('STANDALONE_LEADERBOARD')} className="glass-btn-secondary" style={{ borderColor: 'gold', color: 'gold' }}>
+              <span>🏆 TV LEADERBOARD</span>
             </button>
           </div>
         </motion.div>
@@ -930,14 +942,21 @@ function App() {
     if (isAdmin) {
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ minHeight: '100vh', padding: '30px 5%' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', background: 'rgba(10,10,15,0.85)', padding: '20px 30px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', background: 'rgba(10,10,15,0.85)', padding: '20px 30px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap', gap: '15px' }}>
             <div>
-              <span className="glass-badge" style={{ color: 'var(--cyan)', fontSize: '0.7rem' }}>HOST CONTROL CENTER</span>
+              <span className="glass-badge" style={{ color: 'var(--cyan)', fontSize: '0.7rem' }}>INDEPENDENT HOST CONTROL CENTER</span>
               <h1 style={{ fontFamily: 'var(--retro-font)', color: '#fff', fontSize: '1.4rem', marginTop: '5px' }}>
                 PHASE: {gameState.phase} — Q {(gameState.currentQuestionIndex || 0) + 1}/{gameState.totalQuestions || 20}
               </h1>
             </div>
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => setUiView('STANDALONE_LEADERBOARD')} 
+                className="retro-btn btn-gold" 
+                style={{ fontSize: '0.75rem', padding: '8px 16px' }}
+              >
+                📺 OPEN TV LEADERBOARD
+              </button>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ color: '#aaa', fontSize: '0.75rem', fontFamily: 'var(--modern-font)' }}>TOTAL ANSWERS</p>
                 <p style={{ color: 'var(--neon-green)', fontFamily: 'var(--retro-font)', fontSize: '1.8rem' }}>{safeAnalytics.totalAnswers} / {safePlayerCount}</p>
@@ -1170,6 +1189,73 @@ function App() {
     );
   };
 
+  // ── Standalone Real-Time Leaderboard View (TV / Projector Mode) ───────────
+  const renderStandaloneLeaderboard = () => {
+    const leaderboard = gameState.leaderboard || [];
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        style={{ minHeight: '100vh', width: '100vw', padding: '40px 5%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'radial-gradient(circle at center, rgba(15,15,30,0.95) 0%, rgba(5,5,10,0.98) 100%)' }}
+      >
+        {/* Top Header */}
+        <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', background: 'rgba(255,255,255,0.03)', padding: '18px 30px', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap', gap: '15px' }}>
+          <div>
+            <span className="glass-badge" style={{ color: 'gold', fontSize: '0.75rem' }}>📺 REAL-TIME ARENA BROADCAST</span>
+            <h1 style={{ fontFamily: 'var(--display-font)', fontSize: '1.8rem', color: '#fff', fontWeight: 800, marginTop: '4px', textShadow: '0 0 20px rgba(255,215,0,0.4)' }}>
+              🏆 LIVE LEADERBOARD
+            </h1>
+          </div>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ color: '#aaa', fontSize: '0.75rem', fontFamily: 'var(--modern-font)' }}>TOTAL PLAYERS</p>
+              <p style={{ color: 'var(--cyan)', fontFamily: 'var(--retro-font)', fontSize: '1.6rem' }}>{safePlayerCount}</p>
+            </div>
+            <button onClick={() => setUiView('LANDING')} className="nav-back-btn" style={{ position: 'relative', top: 'auto', left: 'auto' }}>
+              ← EXIT LEADERBOARD
+            </button>
+          </div>
+        </div>
+
+        {/* Live Standings Table */}
+        <div className="glass-card" style={{ maxWidth: '1000px', width: '100%', padding: '40px', background: 'rgba(10,10,18,0.9)', backdropFilter: 'blur(20px)', borderRadius: '24px', boxShadow: '0 25px 60px rgba(0,0,0,0.9)' }}>
+          {leaderboard.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: '#888', fontFamily: 'var(--modern-font)', fontSize: '1.2rem' }}>
+              ⏳ Waiting for live game scores to populate...
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {leaderboard.map((p, idx) => {
+                const medals = ['🥇', '🥈', '🥉'];
+                const isTop3 = idx < 3;
+                const medal = medals[idx] || `#${idx + 1}`;
+
+                return (
+                  <motion.div 
+                    key={p.id || idx} 
+                    layout
+                    initial={{ opacity: 0, y: 10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ duration: 0.3, delay: Math.min(idx * 0.03, 0.5) }} 
+                    className={isTop3 ? `leaderboard-row top-3 rank-${idx + 1}` : 'leaderboard-row'} 
+                    style={{ padding: '16px 24px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isTop3 ? 'rgba(255,215,0,0.08)' : 'rgba(255,255,255,0.03)', border: isTop3 ? '1px solid rgba(255,215,0,0.3)' : '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                      <span className="rank-badge" style={{ fontSize: '1.5rem', width: '40px', textAlign: 'center' }}>{medal}</span>
+                      <span style={{ color: '#fff', fontSize: '1.2rem', fontWeight: isTop3 ? 800 : 600, fontFamily: 'var(--modern-font)' }}>{p.nickname}</span>
+                    </div>
+                    <span style={{ color: 'gold', fontFamily: 'var(--retro-font)', fontSize: '1.4rem' }}>{p.score} PTS</span>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
   // ── Main Render ───────────────────────────────────────────────────────────
   return (
     <div className="crt">
@@ -1190,6 +1276,7 @@ function App() {
       {uiView === 'LANDING' && renderLandingPage()}
       {uiView === 'ENTER_GAME' && renderEnterGame()}
       {uiView === 'ADMIN_LOGIN' && renderAdminLogin()}
+      {uiView === 'STANDALONE_LEADERBOARD' && renderStandaloneLeaderboard()}
 
       {uiView === 'JOINED' && (
         <>

@@ -234,6 +234,7 @@ function sendQuestion(q) {
   gameState.currentQuestion = { id: q.id, text: q.text, options: q.options, image: q.image };
   gameState.currentQuestionIndex = currentQuestionIndex;
   gameState.totalQuestions = getQuestionList().length;
+  gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
   
   currentAnalytics = {
     totalAnswers: 0,
@@ -243,12 +244,15 @@ function sendQuestion(q) {
   };
   io.emit('liveAnalytics', currentAnalytics);
   io.emit('question', gameState.currentQuestion);
+  io.emit('gameStateUpdate', gameState);
   
   Object.values(gameState.players).forEach(p => p.answered = false);
   questionStartTime = Date.now();
   
   startTimer(15, () => {
+    gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
     io.emit('answerResult', { correctOption: q.answer });
+    io.emit('gameStateUpdate', gameState);
   });
 }
 
@@ -384,8 +388,10 @@ io.on('connection', (socket) => {
         }
       }
       
+      gameState.leaderboard = Object.values(gameState.players).sort((a, b) => b.score - a.score);
       socket.emit('answerAck', { success: true, score: player.score });
       broadcastAnalyticsThrottled();
+      io.emit('gameStateUpdate', gameState);
     }
   });
 

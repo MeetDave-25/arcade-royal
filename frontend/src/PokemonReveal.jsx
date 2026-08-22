@@ -211,6 +211,8 @@ export default function PokemonReveal({ onComplete }) {
           const ady = Math.abs(next.y - currentY);
           if (ady > adx) direction = next.y > currentY ? 'down' : 'up';
           else direction = next.x > currentX ? 'right' : 'left';
+        } else {
+          if (onComplete) onComplete();
         }
       } else {
         currentX += (dx / dist) * speed;
