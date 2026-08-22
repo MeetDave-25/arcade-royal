@@ -75,38 +75,34 @@ let questionStartTime = 0;
 let currentQuestionIndex = 0;
 let analyticsBroadcastTimeout = null;
 
+// GAME 1: 10 MEME QUESTIONS
 const questionsG1 = [
   { id: 1, text: '😂 Q1. This iconic reaction/meme is from which movie?', image: '/meme/Hera-Pheri-Memes-8.jpg', options: ['Hera Pheri', 'Welcome', 'Dhamaal', 'Bhool Bhulaiyaa'], answer: 0 },
   { id: 2, text: '🤣 Q2. Which Bollywood movie is behind this iconic chaotic meme energy?', image: '/meme/2.jpg', options: ['Welcome', 'Golmaal', 'Phir Hera Pheri', 'Bhool Bhulaiyaa'], answer: 0 },
-  { id: 3, text: '🎓 Q3. "Engineering + friendship + absolute chaos" — identify the movie.', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Munna Bhai M.B.B.S.'], answer: 0 },
-  { id: 4, text: '👻 Q4. A funny horror-comedy scene featuring Akshay Kumar — which movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Bhoot Police', 'Roohi'], answer: 1 },
-  { id: 5, text: '🎵 Q5. ❤️ + 🫵 + 🌎 Which song?', options: ['Tum Hi Ho', 'Apna Bana Le', 'Kesariya', 'Raataan Lambiyan'], answer: 1 },
-  { id: 6, text: '🎵 Q6. 🌧️ + ❤️🩹 + 🚶‍♂️ + 💔 Which song fits?', options: ['Agar Tum Saath Ho', 'Channa Mereya', 'Tujhe Kitna Chahne Lage', 'Hamari Adhuri Kahani'], answer: 1 },
-  { id: 7, text: '🎵 Q7. 🌅 + 👩‍❤️‍👨 + 🏠 Guess the song.', options: ['Apna Bana Le', 'Ranjha', 'Ve Kamleya', 'Hawayein'], answer: 1 },
-  { id: 8, text: '🎵 Q8. 💃 + 🕺 + 🥳 + ❤️ Which song?', options: ['What Jhumka?', 'Gallan Goodiyaan', 'Nacho Nacho', 'Aankh Marey'], answer: 1 },
-  { id: 9, text: '🎵 Q9. 🛣️ + 🚗 + 👬 + 🌍 Which song/movie vibe is this?', options: ['Ilahi', 'Safarnama', 'Yun Hi Chala Chal', 'Khaabon Ke Parinday'], answer: 1 },
-  { id: 10, text: '😂 Q10. When your friend says "Bro, trust me" and you immediately know you\'re finished. Which movie gives this meme energy?', options: ['Hera Pheri', 'Andaz Apna Apna', 'Golmaal', 'Munna Bhai M.B.B.S.'], answer: 0 },
-  { id: 11, text: '😂 Q11. 💀 When the plan was perfect… until your friend joined. Which movie?', options: ['Dhamaal', 'Welcome', 'Golmaal', 'Housefull'], answer: 0 },
-  { id: 12, text: '😂 Q12. 🧠 When you studied everything except what came in the exam. Which movie?', options: ['3 Idiots', 'Chhichhore', 'Munna Bhai M.B.B.S.', 'Taare Zameen Par'], answer: 0 },
-  { id: 13, text: '😂 Q13. 💸 "Broke but still planning a luxury life." Which movie?', options: ['Phir Hera Pheri', 'Welcome', 'Dhamaal', 'Fukrey'], answer: 0 },
-  { id: 14, text: '🔥 Q14. 👨‍🎓👨‍🎓👨‍🎓 + 🎓 + 🤪 + ❤️ Which movie?', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Rang De Basanti'], answer: 0 },
-  { id: 15, text: '🔥 Q15. 👻 + 🏚️ + 😂 + 💃 Which movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Roohi', 'Bhoot Police'], answer: 0 },
-  { id: 16, text: '🔥 Q16. 👮 + ❤️ + 😂 + 🏃 Which movie?', options: ['Singham', 'Dabangg', 'Chennai Express', 'Wanted'], answer: 1 },
-  { id: 17, text: '⚡ Q17. HARD MODE: 🎵 💔 ☕ 🌧️ 👫❌ Guess the song.', options: ['Channa Mereya', 'Agar Tum Saath Ho', 'Hamari Adhuri Kahani', 'Phir Bhi Tumko Chaahunga'], answer: 1 },
-  { id: 18, text: '⚡ Q18. 🏃‍♂️🏃‍♂️🏃‍♂️ + 💰 + 🤯 + 🏝️ Which movie?', options: ['Dhamaal', 'Dhol', 'All the Best', 'De Dana Dan'], answer: 0 },
-  { id: 19, text: '⚡ Q19. 👨‍👩‍👧‍👦 + 💍 + 💃 + 🥳 + 🎶 Guess the movie.', options: ['Hum Aapke Hain Koun', 'Kabhi Khushi Kabhie Gham', '2 States', 'Rocky Aur Rani Kii Prem Kahaani'], answer: 0 },
-  { id: 20, text: '⚡ Q20. 🧑‍🤝‍🧑 + 🛣️ + 🍺❌ + 🗺️ + ✈️ Which movie?', options: ['Zindagi Na Milegi Dobara', 'Dil Chahta Hai', 'Yeh Jawaani Hai Deewani', 'Tamasha'], answer: 0 }
+  { id: 3, text: '😂 Q3. When your friend says "Bro, trust me" and you immediately know you\'re finished. Which movie gives this meme energy?', options: ['Hera Pheri', 'Andaz Apna Apna', 'Golmaal', 'Munna Bhai M.B.B.S.'], answer: 0 },
+  { id: 4, text: '😂 Q4. 💀 When the plan was perfect… until your friend joined. Which movie?', options: ['Dhamaal', 'Welcome', 'Golmaal', 'Housefull'], answer: 0 },
+  { id: 5, text: '😂 Q5. 🧠 When you studied everything except what came in the exam. Which movie?', options: ['3 Idiots', 'Chhichhore', 'Munna Bhai M.B.B.S.', 'Taare Zameen Par'], answer: 0 },
+  { id: 6, text: '😂 Q6. 💸 "Broke but still planning a luxury life." Which movie?', options: ['Phir Hera Pheri', 'Welcome', 'Dhamaal', 'Fukrey'], answer: 0 },
+  { id: 7, text: '👻 Q7. A funny horror-comedy scene featuring Akshay Kumar — which movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Bhoot Police', 'Roohi'], answer: 1 },
+  { id: 8, text: '🎓 Q8. "Engineering + friendship + absolute chaos" — identify the movie.', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Munna Bhai M.B.B.S.'], answer: 0 },
+  { id: 9, text: '🔥 Q9. 👻 + 🏚️ + 😂 + 💃 Which horror comedy meme movie?', options: ['Stree', 'Bhool Bhulaiyaa', 'Roohi', 'Bhoot Police'], answer: 1 },
+  { id: 10, text: '🏃 Q10. 🏃‍♂️🏃‍♂️🏃‍♂️ + 💰 + 🤯 + 🏝️ 4 friends chasing money — Which movie?', options: ['Dhamaal', 'Dhol', 'All the Best', 'De Dana Dan'], answer: 0 }
 ];
 
+// GAME 2: 10 GUESS THE MOVIE / SONG QUESTIONS
 const questionsG2 = [
-  { id: 21, text: 'WHAT HAPPENS NEXT? (Imagine a guy holding a diet coke and mentos...)', options: ['He drinks it', 'It explodes', 'He gives it to a dog', 'Nothing'], answer: 1 }
+  { id: 11, text: '🎵 Q1. ❤️ + 🫵 + 🌎 Guess the song name!', options: ['Tum Hi Ho', 'Apna Bana Le', 'Kesariya', 'Raataan Lambiyan'], answer: 1 },
+  { id: 12, text: '🎵 Q2. 🌧️ + ❤️🩹 + 🚶‍♂️ + 💔 Guess the song name!', options: ['Agar Tum Saath Ho', 'Channa Mereya', 'Tujhe Kitna Chahne Lage', 'Hamari Adhuri Kahani'], answer: 1 },
+  { id: 13, text: '🎵 Q3. 🌅 + 👩‍❤️‍👨 + 🏠 Guess the song name!', options: ['Apna Bana Le', 'Ranjha', 'Ve Kamleya', 'Hawayein'], answer: 0 },
+  { id: 14, text: '🎵 Q4. 💃 + 🕺 + 🥳 + ❤️ Guess the song name!', options: ['What Jhumka?', 'Gallan Goodiyaan', 'Nacho Nacho', 'Aankh Marey'], answer: 1 },
+  { id: 15, text: '🎵 Q5. 🛣️ + 🚗 + 👬 + 🌍 Guess the song name!', options: ['Ilahi', 'Safarnama', 'Yun Hi Chala Chal', 'Khaabon Ke Parinday'], answer: 1 },
+  { id: 16, text: '⚡ Q6. 🎵 💔 ☕ 🌧️ 👫❌ Guess the song name!', options: ['Channa Mereya', 'Agar Tum Saath Ho', 'Hamari Adhuri Kahani', 'Phir Bhi Tumko Chaahunga'], answer: 1 },
+  { id: 17, text: '🎬 Q7. 👨‍🎓👨‍🎓👨‍🎓 + 🎓 + 🤪 + ❤️ Guess the movie name!', options: ['3 Idiots', 'Chhichhore', 'Student of the Year', 'Rang De Basanti'], answer: 0 },
+  { id: 18, text: '🎬 Q8. 👮 + ❤️ + 😂 + 🏃 Guess the movie name!', options: ['Singham', 'Dabangg', 'Chennai Express', 'Wanted'], answer: 1 },
+  { id: 19, text: '🎬 Q9. 👨‍👩‍👧‍👦 + 💍 + 💃 + 🥳 + 🎶 Guess the movie name!', options: ['Hum Aapke Hain Koun', 'Kabhi Khushi Kabhie Gham', '2 States', 'Rocky Aur Rani Kii Prem Kahaani'], answer: 0 },
+  { id: 20, text: '🎬 Q10. 🧑‍🤝‍🧑 + 🛣️ + 🍺❌ + 🗺️ + ✈️ Guess the movie name!', options: ['Zindagi Na Milegi Dobara', 'Dil Chahta Hai', 'Yeh Jawaani Hai Deewani', 'Tamasha'], answer: 0 }
 ];
 
-const questionsG3 = [
-  { id: 22, text: 'MARATHON: Which of these is a classic 8-bit game?', options: ['Halo', 'Pac-Man', 'Fortnite', 'Minecraft'], answer: 1 }
-];
-
-// HIGH CONCURRENCY DB FIX: Single multi-row batch insert instead of N individual queries
 async function saveLeaderboardToDB() {
   const leaderboard = Object.values(gameState.players)
     .filter(p => p && p.nickname)
@@ -129,7 +125,6 @@ async function saveLeaderboardToDB() {
   }
 }
 
-// Throttled Analytics Broadcast to prevent socket flooding under 150+ rapid clicks
 function broadcastAnalyticsThrottled() {
   if (!analyticsBroadcastTimeout) {
     analyticsBroadcastTimeout = setTimeout(() => {
@@ -155,7 +150,6 @@ function startTimer(seconds, onFinish) {
 
 function getQuestionList() {
   if (gameState.phase === 'GAME2') return questionsG2;
-  if (gameState.phase === 'GAME3') return questionsG3;
   return questionsG1;
 }
 
@@ -206,7 +200,6 @@ io.on('connection', (socket) => {
       gameState.phase = 'VERIFICATION';
     }
 
-    // Reconnection handling: check if player with same nickname already joined
     let existingPlayer = Object.values(gameState.players).find(p => p.nickname.toLowerCase() === cleanNick.toLowerCase());
 
     if (existingPlayer) {
@@ -265,7 +258,6 @@ io.on('connection', (socket) => {
         }
       }
       
-      // Send instant ACK to submitting player, update analytics via throttle
       socket.emit('answerAck', { success: true, score: player.score });
       broadcastAnalyticsThrottled();
     }
@@ -335,14 +327,6 @@ io.on('connection', (socket) => {
       Object.values(gameState.players).forEach(p => { p.answered = false; });
       io.emit('gameStateUpdate', gameState);
       sendQuestion(questionsG2[currentQuestionIndex]);
-    } else if (action === 'START_GAME3') {
-      clearInterval(timerInterval);
-      gameState.phase = 'GAME3';
-      currentQuestionIndex = 0;
-      gameState.totalQuestions = questionsG3.length;
-      Object.values(gameState.players).forEach(p => { p.answered = false; });
-      io.emit('gameStateUpdate', gameState);
-      sendQuestion(questionsG3[currentQuestionIndex]);
     } else if (action === 'SHOW_LEADERBOARD') {
       clearInterval(timerInterval);
       gameState.phase = 'LEADERBOARD';
@@ -355,7 +339,6 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (gameState.players[socket.id]) {
-      // Mark offline, grace period of 30 seconds before removal to preserve score on temporary phone disconnect
       gameState.players[socket.id].online = false;
       setTimeout(() => {
         if (gameState.players[socket.id] && !gameState.players[socket.id].online) {

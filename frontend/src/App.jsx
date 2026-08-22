@@ -288,26 +288,24 @@ function App() {
       </header>
 
       {/* Game Modes Cards */}
-      <section id="modes" style={{ padding: '120px 5%', position: 'relative', zIndex: 10 }}>
+      <section id="modes" style={{ padding: '100px 5%', position: 'relative', zIndex: 10 }}>
         <motion.div 
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          style={{ textAlign: 'center', marginBottom: '80px' }}
+          style={{ textAlign: 'center', marginBottom: '60px' }}
         >
-          <div className="glass-badge" style={{ marginBottom: '15px' }}>CHALLENGE MODES</div>
+          <div className="glass-badge" style={{ marginBottom: '15px' }}>GAME ARENA MODES</div>
           <h2 style={{ fontFamily: 'var(--display-font)', fontWeight: 800, fontSize: '3rem', color: '#ffffff', letterSpacing: '-0.02em' }}>
-            CHOOSE YOUR <span style={{ color: 'var(--cyan)' }}>DESTINY</span>
+            CHOOSE YOUR <span style={{ color: 'var(--cyan)' }}>ARENA</span>
           </h2>
         </motion.div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', maxWidth: '1400px', margin: '0 auto' }}>
-          
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', maxWidth: '1000px', margin: '0 auto' }}>
           {[
-            { icon: '🧠', title: 'Meme War', desc: 'Test your knowledge of internet culture, viral videos, and legendary Bollywood memes. Answer fast to secure maximum points.', color: 'var(--cyan)' },
-            { icon: '😂', title: 'Comedy Edition', desc: 'We pause the viral clip right before the punchline. You guess the ridiculous ending. It\'s absolute comedy gold.', color: 'var(--neon-green)' },
-            { icon: '⚔️', title: 'Marathon Boss', desc: 'The final stage. Rapid fire questions, higher difficulty, and double the points. Only the strong survive the onslaught.', color: 'var(--hot-pink)' },
+            { icon: '🧠', title: '1. Meme War (10 Qs)', desc: 'Test your knowledge of internet culture, viral reaction images, and legendary Bollywood memes. 10 rapid-fire questions.', color: 'var(--cyan)' },
+            { icon: '🎵', title: '2. Guess Movie & Song (10 Qs)', desc: 'Identify iconic Bollywood songs and movies from emoji clues and hints. 10 high-stakes guessing questions.', color: 'var(--neon-green)' },
           ].map((mode, idx) => (
             <motion.div 
               key={idx}
@@ -325,6 +323,7 @@ function App() {
           ))}
         </div>
       </section>
+
 
       {/* Poster Section */}
       <section id="poster" style={{ padding: '100px 5%', position: 'relative', zIndex: 10 }}>
@@ -583,14 +582,11 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ flex: 1, minWidth: '140px', borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '14px', fontSize: '0.85rem' }}>
-                🎮 START GAME 1
+              <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ flex: 1, minWidth: '160px', borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '14px', fontSize: '0.85rem' }}>
+                🎮 START GAME 1 (MEME WAR)
               </button>
-              <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ flex: 1, minWidth: '140px', borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '14px', fontSize: '0.85rem' }}>
-                😂 START GAME 2
-              </button>
-              <button onClick={() => adminAction('START_GAME3')} className="retro-btn" style={{ flex: 1, minWidth: '140px', borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '14px', fontSize: '0.85rem' }}>
-                ⚡ START GAME 3
+              <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ flex: 1, minWidth: '160px', borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '14px', fontSize: '0.85rem' }}>
+                🎵 START GAME 2 (MOVIE & SONG)
               </button>
               <button onClick={() => adminAction('KICK_UNVERIFIED')} className="retro-btn" style={{ borderColor: '#eab308', color: '#eab308', padding: '14px', fontSize: '0.8rem' }}>
                 KICK UNVERIFIED
@@ -750,9 +746,8 @@ function App() {
 
               <div className="glass-card" style={{ padding: '20px', background: 'rgba(0,0,0,0.8)', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button onClick={() => adminAction('NEXT_QUESTION')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', fontSize: '0.9rem', padding: '10px 15px', width: '100%', marginBottom: '5px' }}>NEXT QUESTION ➔</button>
-                <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>↺ GAME 1</button>
-                <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>G2 COMEDY</button>
-                <button onClick={() => adminAction('START_GAME3')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>G3 MARATHON</button>
+                <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>↺ GAME 1 (MEME)</button>
+                <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ fontSize: '0.75rem', padding: '8px 12px' }}>🎵 GAME 2 (MOVIE/SONG)</button>
                 <button onClick={() => adminAction('SHOW_LEADERBOARD')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', fontSize: '0.75rem', padding: '8px 12px' }}>🏆 LEADERBOARD</button>
                 <button onClick={() => adminAction('STOP_GAME')} className="retro-btn" style={{ borderColor: '#ef4444', color: '#ef4444', fontSize: '0.75rem', padding: '8px 12px', width: '100%', marginTop: '5px' }}>🛑 STOP & RESET</button>
               </div>
@@ -881,11 +876,11 @@ function App() {
 
         {isAdmin && (
           <div style={{ display: 'flex', gap: '15px', marginTop: '35px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px 25px', fontSize: '0.9rem' }}>
-              START GAME 2 😂
+            <button onClick={() => adminAction('START_GAME1')} className="retro-btn" style={{ borderColor: 'var(--hot-pink)', color: 'var(--hot-pink)', padding: '15px 25px', fontSize: '0.9rem' }}>
+              START GAME 1 (MEME WAR) 🧠
             </button>
-            <button onClick={() => adminAction('START_GAME3')} className="retro-btn" style={{ borderColor: 'var(--neon-green)', color: 'var(--neon-green)', padding: '15px 25px', fontSize: '0.9rem' }}>
-              START GAME 3 ⚡
+            <button onClick={() => adminAction('START_GAME2')} className="retro-btn" style={{ borderColor: 'var(--cyan)', color: 'var(--cyan)', padding: '15px 25px', fontSize: '0.9rem' }}>
+              START GAME 2 (MOVIE & SONG) 🎵
             </button>
             <button onClick={() => adminAction('START_VERIFICATION')} className="retro-btn" style={{ borderColor: 'gold', color: 'gold', padding: '15px 25px', fontSize: '0.9rem' }}>
               NEW PRESENCE CHECK ✋
@@ -924,7 +919,7 @@ function App() {
         <>
           {(gameState?.phase === 'LOBBY' || !gameState?.phase) && renderJoinedLobby()}
           {gameState?.phase === 'VERIFICATION' && renderVerificationPage()}
-          {['GAME1', 'GAME2', 'GAME3'].includes(gameState?.phase) && renderGame()}
+          {['GAME1', 'GAME2'].includes(gameState?.phase) && renderGame()}
           {gameState?.phase === 'LEADERBOARD' && renderLeaderboard()}
         </>
       )}
