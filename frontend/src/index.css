@@ -85,33 +85,60 @@ body {
   box-shadow: 0 12px 40px 0 rgba(0, 255, 255, 0.2);
 }
 
-/* Button Styling (Modern + Retro) */
+/* Button Styling (Modern + Retro Glass) */
 .retro-btn {
-  font-family: var(--retro-font);
-  background: rgba(0, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
+  font-family: var(--body-font);
+  font-weight: 700;
+  background: rgba(10, 10, 18, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--cyan);
-  border: 2px solid var(--cyan);
-  border-radius: 8px; /* Modern touch */
-  padding: 15px 30px;
-  font-size: 1rem;
+  border: 1.5px solid currentColor;
+  border-radius: 9999px;
+  padding: 12px 24px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
   cursor: pointer;
   text-transform: uppercase;
   position: relative;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 0 0 10px rgba(0,255,255,0.3);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
 .retro-btn:hover {
-  background: var(--cyan);
-  color: #000;
-  box-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan);
-  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
 }
 
 .retro-btn:active {
-  transform: scale(0.95);
+  transform: translateY(0);
 }
+
+.option-btn {
+  font-family: var(--body-font) !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  padding: 16px 20px !important;
+  border-radius: 14px !important;
+  background: rgba(15, 15, 25, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  text-align: left !important;
+  transition: all 0.2s ease !important;
+}
+
+.option-btn:hover {
+  background: rgba(34, 211, 238, 0.18) !important;
+  border-color: var(--cyan) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
 
 .retro-input {
   font-family: var(--modern-font);
